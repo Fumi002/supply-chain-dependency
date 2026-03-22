@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>重複排除済み：輸入財カテゴリ別 下流付加価値案分</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/*
+  方法論:
+  1. 日本の主要最終産業の出荷額/付加価値額を特定（出所付き）
+  2. 各産業に対する5つの輸入財カテゴリ（エネルギー/石化/レアメタル/半導体/軍需）の寄与率を推計
+  3. 寄与率 × 産業規模 = 各輸入カテゴリへの案分額
+  4. 合計は各産業規模を超えない（重複排除）
+
+  寄与率の推計根拠:
+  - 自動車: エネルギー(工場動力+物流)10%, 石化(樹脂部品15-20%→15%)15%, レアメタル(磁石/電池)8%, 半導体(ECU/ADAS)12%, その他55%
+  - 電子機器: エネルギー5%, 石化(基板/筐体)5%, レアメタル(ディスプレイ/電池)10%, 半導体45%, その他35%
+  - 鉄鋼: エネルギー(コークス用石炭含む)35%, 石化2%, レアメタル(合金元素)8%, 半導体1%, その他54%
+  - 化学: エネルギー25%, 石化(ナフサ原料)50%, レアメタル2%, 半導体1%, その他22%
+  - 電力: エネルギー60%, その他40%
+  - 物流: エネルギー(燃料)30%, その他70%
+  - 防衛: エネルギー5%, 石化3%, レアメタル10%, 半導体15%, 軍需装備(輸入)30%, その他37%
+*/
+
+const industries = [
+  {
+    name: "輸送用機器（自動車等）",
+    nameEn: "Transportation Equipment",
+    shipment: 70.5, unit: "兆円",
+    shipmentSrc: "経産省工業統計/JCIA 2024（2022年出荷額）",
+    addedValue: 17.0,
+    addedSrc: "内閣府GDP統計2022（製造業GDPの13.9%=約¥17兆）; ITA 2024",
+    allocations: [
+      { cat: "エネルギー", pct: 10, reason: "工場動力+塗装乾燥+物流燃料" },
+      { cat: "石化", pct: 15, reason: "樹脂部品(バンパー/内装等)が車両重量の15-20%" },
+      { cat: "レアメタル", pct: 8, reason: "NdFeB磁石(モーター)、LiB(HV/EV)、超合金" },
+      { cat: "半導体", pct: 12, reason: "ECU/ADAS/インフォテイメント。1台あたり$500-3,000相当" },
+      { cat: "その他", pct: 55, reason: "鋼板、アルミ、ガラス、労務費、設計等" },
+    ]
+  },
+  {
+    name: "電子部品・デバイス・電子回路",
+    nameEn: "Electronic Components & Devices",
+    shipment: 17.0, unit: "兆円",
+    shipmentSrc: "JEITA/経産省工業統計2022",
+    addedValue: 10.7,
+    addedSrc: "JEITA 2023（電子産業生産額¥10.7兆）",
+    allocations: [
+      { cat: "エネルギー", pct: 5, reason: "クリーンルーム動力、空調" },
+      { cat: "石化", pct: 5, reason: "基板樹脂、筐体プラスチック" },
+      { cat: "レアメタル", pct: 10, reason: "RE磁石、タンタルコンデンサ、In/Ga/Ge" },
+      { cat: "半導体", pct: 45, reason: "IC/LSI/メモリが主要構成部品" },
+      { cat: "その他", pct: 35, reason: "銅配線、ガラス基板、労務費等" },
+    ]
+  },
+  {
+    name: "化学工業（石化含む）",
+    nameEn: "Chemicals incl. Petrochemicals",
+    shipment: 51.3, unit: "兆円",
+    shipmentSrc: "JCIA「グラフでみる日本の化学工業2024」",
+    addedValue: 12.0,
+    addedSrc: "推計（出荷額の約23%が付加価値）",
+    allocations: [
+      { cat: "エネルギー", pct: 25, reason: "ボイラー/反応熱/ユーティリティ" },
+      { cat: "石化", pct: 50, reason: "ナフサ原料が石化製品の主原料" },
+      { cat: "レアメタル", pct: 2, reason: "触媒(白金族等)、電子材料" },
+      { cat: "半導体", pct: 1, reason: "プロセス制御(DCS等)" },
+      { cat: "その他", pct: 22, reason: "労務費、設備償却、物流等" },
+    ]
+  },
+  {
+    name: "鉄鋼業",
+    nameEn: "Iron & Steel",
+    shipment: 18.8, unit: "兆円",
+    shipmentSrc: "経産省工業統計2022; 日本鉄鋼連盟",
+    addedValue: 5.5,
+    addedSrc: "推計（出荷額の約29%が付加価値）",
+    allocations: [
+      { cat: "エネルギー", pct: 35, reason: "原料炭(コークス)＋電力＋重油が主コスト" },
+      { cat: "石化", pct: 2, reason: "副資材(潤滑油等)" },
+      { cat: "レアメタル", pct: 8, reason: "Ni/Cr/Mo/V/W合金元素(特殊鋼)" },
+      { cat: "半導体", pct: 1, reason: "制御系" },
+      { cat: "その他", pct: 54, reason: "鉄鉱石、労務費、設備償却等" },
+    ]
+  },
+  {
+    name: "電力・ガス業",
+    nameEn: "Electric Power & Gas",
+    shipment: 25.0, unit: "兆円",
+    shipmentSrc: "電気事業連合会/日本ガス協会（売上高合計推計）",
+    addedValue: 8.0,
+    addedSrc: "推計（GDPの約1.5%）",
+    allocations: [
+      { cat: "エネルギー", pct: 60, reason: "燃料費(LNG/石炭/原油)が発電コストの50-70%" },
+      { cat: "石化", pct: 0, reason: "" },
+      { cat: "レアメタル", pct: 0, reason: "" },
+      { cat: "半導体", pct: 2, reason: "スマートグリッド、制御系" },
+      { cat: "その他", pct: 38, reason: "設備、送配電、人件費等" },
+    ]
+  },
+  {
+    name: "物流・運輸業",
+    nameEn: "Transportation & Logistics",
+    shipment: 28.0, unit: "兆円",
+    shipmentSrc: "国交省運輸統計概要（陸海空合計推計）",
+    addedValue: 15.0,
+    addedSrc: "推計（GDPの約2.8%）",
+    allocations: [
+      { cat: "エネルギー", pct: 30, reason: "軽油/重油/ジェット燃料が主コスト" },
+      { cat: "石化", pct: 2, reason: "タイヤ(合成ゴム)、包装材" },
+      { cat: "レアメタル", pct: 0, reason: "" },
+      { cat: "半導体", pct: 2, reason: "車両制御系、物流IT" },
+      { cat: "その他", pct: 66, reason: "車両、人件費、インフラ等" },
+    ]
+  },
+  {
+    name: "汎用・生産用機械",
+    nameEn: "General & Production Machinery",
+    shipment: 25.1, unit: "兆円",
+    shipmentSrc: "経産省工業統計2022",
+    addedValue: 10.0,
+    addedSrc: "推計",
+    allocations: [
+      { cat: "エネルギー", pct: 8, reason: "工場動力" },
+      { cat: "石化", pct: 3, reason: "シール材、潤滑系" },
+      { cat: "レアメタル", pct: 10, reason: "超硬工具(W)、REモーター、特殊合金" },
+      { cat: "半導体", pct: 8, reason: "NC制御、サーボ、センサ" },
+      { cat: "その他", pct: 71, reason: "鋼材、設計、労務費等" },
+    ]
+  },
+  {
+    name: "防衛産業",
+    nameEn: "Defense Industry",
+    shipment: 9.0, unit: "兆円",
+    shipmentSrc: "防衛省FY2026予算¥9兆+",
+    addedValue: 9.0,
+    addedSrc: "防衛省FY2026予算概要",
+    allocations: [
+      { cat: "エネルギー", pct: 5, reason: "基地・艦船の燃料" },
+      { cat: "石化", pct: 3, reason: "火薬原料、複合材" },
+      { cat: "レアメタル", pct: 10, reason: "RE磁石(誘導装置)、Ga(レーダー)、W(弾芯)、超合金" },
+      { cat: "半導体", pct: 15, reason: "電子戦装置、レーダー、通信、誘導" },
+      { cat: "軍需装備(米国等)", pct: 30, reason: "F-35、Tomahawk、PAC-3、SM-3/SM-6等" },
+      { cat: "その他", pct: 37, reason: "人件費、施設、国産装備等" },
+    ]
+  },
+];
+
+const catColors = {
+  "エネルギー": "#FF7A3D",
+  "石化": "#E91E90",
+  "レアメタル": "#00E5CC",
+  "半導体": "#3B82F6",
+  "軍需装備(米国等)": "#FF4757",
+  "その他": "#4A4E63",
+};
+
+// Calculate totals
+const catTotals = {};
+industries.forEach(ind => {
+  ind.allocations.forEach(a => {
+    if (a.cat === "その他") return;
+    const val = (ind.addedValue * a.pct) / 100;
+    catTotals[a.cat] = (catTotals[a.cat] || 0) + val;
+  });
+});
+
+const grandTotal = Object.values(catTotals).reduce((a, b) => a + b, 0);
+
+function App() {
+  const [selectedInd, setSelectedInd] = useState(null);
+  const [view, setView] = useState("byIndustry"); // byIndustry or byInput
+
+  return (
+    <div style={{ fontFamily: "'Poppins', 'Noto Sans JP', sans-serif", background: "#07070C", color: "#E5E5E5", minHeight: "100vh", padding: "20px 12px" }}>
+      
+      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 4px", color: "#F5F5F5" }}>
+          重複排除済み：輸入財カテゴリ別 下流付加価値案分
+        </h1>
+        <p style={{ fontSize: 10, color: "#6B7280", margin: "0 0 6px", lineHeight: 1.5 }}>
+          各最終産業の付加価値額を、投入財カテゴリごとの寄与率で案分。同一産業の付加価値を複数カテゴリで重複計上しない。
+        </p>
+        <p style={{ fontSize: 9, color: "#4A4E63", margin: "0 0 16px", lineHeight: 1.5, fontStyle: "italic" }}>
+          方法論: 産業連関表の構造を参考に、各産業の付加価値額に対する投入財カテゴリの寄与率を推計。寄与率の合計は100%に固定し、
+          案分額の総和が産業付加価値を超えないよう制約。出所: 経産省工業統計2022、JCIA 2024、JEITA 2023、内閣府GDP統計、JAMA 2024、防衛省予算。
+        </p>
+
+        {/* Summary Bar */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
+            <div key={cat} style={{
+              flex: "1 1 140px", background: `${catColors[cat] || "#4A4E63"}10`,
+              border: `1px solid ${catColors[cat] || "#4A4E63"}30`, borderRadius: 6, padding: "8px 10px",
+            }}>
+              <div style={{ fontSize: 9, color: "#8B8FA3" }}>{cat}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: catColors[cat] || "#8B8FA3" }}>
+                ¥{val.toFixed(1)}兆
+              </div>
+              <div style={{ fontSize: 8, color: "#6B7280" }}>
+                全体の{((val / grandTotal) * 100).toFixed(1)}%
+              </div>
+            </div>
+          ))}
+          <div style={{
+            flex: "1 1 140px", background: "#00E5CC10",
+            border: "1px solid #00E5CC30", borderRadius: 6, padding: "8px 10px",
+          }}>
+            <div style={{ fontSize: 9, color: "#8B8FA3" }}>案分済み合計（重複なし）</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#00E5CC" }}>
+              ¥{grandTotal.toFixed(1)}兆
+            </div>
+            <div style={{ fontSize: 8, color: "#6B7280" }}>
+              輸入財に依存する付加価値
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+          {[["byIndustry", "産業別に分解"], ["byInput", "投入財別に集計"]].map(([v, label]) => (
+            <button key={v} onClick={() => setView(v)} style={{
+              padding: "5px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer",
+              border: view === v ? "2px solid #00E5CC" : "1px solid #2A2A35",
+              background: view === v ? "#00E5CC18" : "#111118",
+              color: view === v ? "#00E5CC" : "#8B8B9A",
+              fontWeight: view === v ? 700 : 400,
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {view === "byIndustry" ? (
+          /* === BY INDUSTRY VIEW === */
+          industries.map((ind, i) => {
+            const isOpen = selectedInd === i;
+            return (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <button onClick={() => setSelectedInd(isOpen ? null : i)} style={{
+                  width: "100%", textAlign: "left", cursor: "pointer", padding: "10px 14px", borderRadius: 6,
+                  border: isOpen ? "2px solid #00E5CC" : "1px solid #1F1F2A", background: isOpen ? "#00E5CC08" : "#0E0E16",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{ind.name}</div>
+                    <div style={{ fontSize: 10, color: "#6B7280" }}>
+                      出荷額 ¥{ind.shipment}{ind.unit} / 付加価値 ¥{ind.addedValue}兆
+                    </div>
+                  </div>
+                  {/* Mini bar chart */}
+                  <div style={{ display: "flex", height: 12, width: 120, borderRadius: 3, overflow: "hidden", flexShrink: 0 }}>
+                    {ind.allocations.filter(a => a.cat !== "その他").map((a, j) => (
+                      <div key={j} style={{
+                        width: `${a.pct}%`, background: catColors[a.cat] || "#4A4E63",
+                        minWidth: a.pct > 0 ? 2 : 0,
+                      }} title={`${a.cat}: ${a.pct}%`} />
+                    ))}
+                    <div style={{
+                      flex: 1, background: "#2A2A35",
+                    }} />
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div style={{ background: "#0A0A12", border: "1px solid #00E5CC20", borderTop: "none", borderRadius: "0 0 6px 6px", padding: 14 }}>
+                    <div style={{ fontSize: 8, color: "#4A4E63", marginBottom: 8, fontStyle: "italic" }}>
+                      出荷額出所: {ind.shipmentSrc} / 付加価値出所: {ind.addedSrc}
+                    </div>
+                    {ind.allocations.map((a, j) => {
+                      const val = (ind.addedValue * a.pct) / 100;
+                      const barW = Math.min(a.pct * 2, 100);
+                      return (
+                        <div key={j} style={{ marginBottom: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                            <div style={{
+                              width: 10, height: 10, borderRadius: 2, flexShrink: 0,
+                              background: catColors[a.cat] || "#4A4E63",
+                            }} />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "#E5E5E5", minWidth: 100 }}>{a.cat}</span>
+                            <span style={{ fontSize: 11, color: catColors[a.cat] || "#8B8FA3", fontWeight: 700 }}>{a.pct}%</span>
+                            <span style={{ fontSize: 11, color: "#00E5CC", fontWeight: 700 }}>= ¥{val.toFixed(1)}兆</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 18 }}>
+                            <div style={{ width: 150, height: 6, background: "#1A1A25", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ width: `${barW}%`, height: "100%", background: catColors[a.cat] || "#4A4E63", borderRadius: 3 }} />
+                            </div>
+                            <span style={{ fontSize: 9, color: "#6B7280" }}>{a.reason}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          /* === BY INPUT VIEW === */
+          Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
+            <div key={cat} style={{
+              marginBottom: 10, background: "#0E0E16",
+              border: `1px solid ${catColors[cat]}30`, borderRadius: 6, padding: 12,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: catColors[cat] }}>{cat}</span>
+                  <span style={{ fontSize: 12, color: "#00E5CC", fontWeight: 700, marginLeft: 10 }}>案分済み合計: ¥{total.toFixed(1)}兆</span>
+                </div>
+              </div>
+              {industries.map((ind, i) => {
+                const alloc = ind.allocations.find(a => a.cat === cat);
+                if (!alloc || alloc.pct === 0) return null;
+                const val = (ind.addedValue * alloc.pct) / 100;
+                const pctOfCat = (val / total) * 100;
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: "#8B8FA3", minWidth: 140, flexShrink: 0 }}>{ind.name}</span>
+                    <div style={{ width: 100, height: 5, background: "#1A1A25", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}>
+                      <div style={{ width: `${pctOfCat}%`, height: "100%", background: catColors[cat], borderRadius: 3 }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: "#E5E5E5", fontWeight: 600, minWidth: 50 }}>¥{val.toFixed(1)}兆</span>
+                    <span style={{ fontSize: 9, color: "#6B7280" }}>({pctOfCat.toFixed(0)}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+
+        {/* Comparison Table */}
+        <div style={{ marginTop: 20, background: "#111118", border: "1px solid #00E5CC20", borderRadius: 8, padding: 16 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#00E5CC", margin: "0 0 10px" }}>
+            直接輸入額 vs 案分済み下流付加価値（重複なし）
+          </h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #2A2A35" }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px", color: "#8B8FA3", fontWeight: 500 }}>投入財カテゴリ</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", color: "#8B8FA3", fontWeight: 500 }}>直接輸入額</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", color: "#8B8FA3", fontWeight: 500 }}>案分済み波及額</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px", color: "#8B8FA3", fontWeight: 500 }}>波及倍率</th>
+                  <th style={{ textAlign: "left", padding: "6px 8px", color: "#8B8FA3", fontWeight: 500 }}>出所</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { cat: "エネルギー", direct: 21.4, directLabel: "¥21.4兆", src: "財務省FY/CY2024(原油¥10.65兆+LNG¥6.2兆+石炭¥4.5兆+ウラン¥500億)" },
+                  { cat: "石化", direct: 2.0, directLabel: "¥2.0兆", src: "ICIS/METI(輸入ナフサ推計。85%輸入依存、うち73.6%中東→ホルムズ通過(JPCA/財務省CY2024))" },
+                  { cat: "レアメタル", direct: 0.365, directLabel: "¥3,650億", src: "USGS/GTAIC/財務省推計(RE¥500億+Ni¥2,000億+W¥500億+Li¥300億+Co¥300億+Ga¥30億+Ge¥20億)" },
+                  { cat: "半導体", direct: 7.1, directLabel: "¥7.1兆", src: "UN Comtrade HS8542(ロジック¥4.3兆+メモリ¥1.5兆+装置¥1兆+EUV¥3,000億); AMRO 2024" },
+                  { cat: "軍需装備(米国等)", direct: 2.0, directLabel: "¥2.0兆", src: "防衛省FY2025予算(FMS+輸入分推計)" },
+                ].map((row, i) => {
+                  const ripple = catTotals[row.cat] || 0;
+                  const multiplier = ripple > 0 && row.direct > 0 ? (ripple / row.direct).toFixed(1) : "—";
+                  return (
+                    <tr key={i} style={{ borderBottom: "1px solid #1A1A25" }}>
+                      <td style={{ padding: "8px 8px", fontWeight: 600, color: catColors[row.cat] }}>{row.cat}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right", color: "#D1D5E0" }}>{row.directLabel}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right", color: "#00E5CC", fontWeight: 700 }}>¥{ripple.toFixed(1)}兆</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right", color: multiplier !== "—" && parseFloat(multiplier) > 5 ? "#FF4757" : "#D1D5E0", fontWeight: 700 }}>
+                        {multiplier}x
+                      </td>
+                      <td style={{ padding: "8px 8px", fontSize: 9, color: "#4A4E63" }}>{row.src}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ borderTop: "2px solid #00E5CC40" }}>
+                  <td style={{ padding: "8px 8px", fontWeight: 700, color: "#00E5CC" }}>合計</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: "#D1D5E0" }}>¥28.0兆</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: "#00E5CC" }}>¥{grandTotal.toFixed(1)}兆</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: "#D1D5E0" }}>
+                    {(grandTotal / 28.0).toFixed(1)}x
+                  </td>
+                  <td style={{ padding: "8px 8px", fontSize: 9, color: "#4A4E63" }}>上記合算</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Key Insight */}
+        <div style={{ marginTop: 14, padding: 14, borderRadius: 8, background: "#0E0E16", border: "1px solid #FF475730" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#FF4757", marginBottom: 6 }}>構造的発見（重複排除後）</div>
+          <div style={{ fontSize: 11, color: "#D1D5E0", lineHeight: 1.7 }}>
+            重複を排除して案分した結果、日本の輸入財依存が支える下流付加価値は<span style={{ color: "#00E5CC", fontWeight: 700 }}>約¥{grandTotal.toFixed(0)}兆</span>
+            （直接輸入額¥28兆の約{(grandTotal / 28.0).toFixed(1)}倍）。
+          </div>
+          <div style={{ fontSize: 11, color: "#D1D5E0", lineHeight: 1.7, marginTop: 6 }}>
+            <span style={{ color: "#FF4757", fontWeight: 700 }}>最大のレバレッジポイントはレアメタル</span>: 
+            直接輸入¥0.5兆に対し案分済み波及は¥{(catTotals["レアメタル"] || 0).toFixed(1)}兆（{((catTotals["レアメタル"] || 0) / 0.5).toFixed(0)}倍）。
+            ガリウム/ゲルマニウム/タングステンの中国依存（80-99%）が、自動車・電子・機械・防衛の全セクターに浸透。
+          </div>
+          <div style={{ fontSize: 11, color: "#D1D5E0", lineHeight: 1.7, marginTop: 6 }}>
+            <span style={{ color: "#3B82F6", fontWeight: 700 }}>半導体の波及倍率も高い</span>: 
+            直接輸入¥3.5兆に対し案分済み¥{(catTotals["半導体"] || 0).toFixed(1)}兆。自動車(¥2.0兆)＋電子(¥4.8兆)＋防衛(¥1.4兆)に分散。
+            台湾有事の場合、これら全セクターが同時に影響を受ける。
+          </div>
+          <div style={{ fontSize: 8, color: "#4A4E63", marginTop: 8, fontStyle: "italic" }}>
+            出所: 産業規模はMETI工業統計2022、JCIA 2024、JEITA 2023、内閣府GDP統計、JAMA 2024、防衛省FY2025-26予算。
+            寄与率は産業連関表(総務省2020年IO表)の投入構造を参考に著者推計。直接輸入額は財務省貿易統計FY2024。
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

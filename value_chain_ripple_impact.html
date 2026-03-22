@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>輸入額×下流バリューチェーン波及額マップ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const data = [
+  {
+    sector: "エネルギー", color: "#FF7A3D",
+    goods: [
+      { name: "原油", directImport: "¥10.65兆", directSrc: "財務省貿易統計FY2024速報値",
+        downstream: [
+          { name: "石油精製業", value: "¥12兆(出荷額)", src: "経産省工業統計2023概要" },
+          { name: "石油化学(ナフサ経由)", value: "¥1.5兆(輸出)+国内¥10兆+", src: "JPCA統計2021" },
+          { name: "輸送(ガソリン/軽油)", value: "¥約21.4兆(物流+旅客)", src: "国交省運輸統計概要" },
+          { name: "電力(石油火力3%)", value: "¥約0.5兆相当", src: "METI電力調査統計" },
+        ],
+        totalRipple: "¥40兆+", riskNote: "ホルムズ封鎖で石化・物流・電力に同時波及" },
+      { name: "LNG", directImport: "¥6.2兆", directSrc: "財務省貿易統計FY2024",
+        downstream: [
+          { name: "LNG火力発電(電力の34%)", value: "¥約5兆(電気料金按分)", src: "METI「日本のエネルギー2024」" },
+          { name: "都市ガス供給", value: "¥約3兆(都市ガス売上)", src: "日本ガス協会統計" },
+          { name: "製造業(熱源)", value: "¥波及不可分", src: "" },
+        ],
+        totalRipple: "¥15兆+", riskNote: "電力の1/3が停止リスク。産業用熱源も断絶" },
+      { name: "石炭", directImport: "¥約3兆", directSrc: "財務省貿易統計FY2024(推計)",
+        downstream: [
+          { name: "石炭火力発電(電力の30%)", value: "¥約4兆(電気料金按分)", src: "METI電力調査統計" },
+          { name: "製鉄(コークス用)", value: "¥約21.4兆(鉄鋼業出荷額)", src: "日本鉄鋼連盟統計2023" },
+        ],
+        totalRipple: "¥25兆+", riskNote: "鉄鋼業(自動車/建設の上流)に直撃" },
+      { name: "ウラン", directImport: "¥数百億(少額)", directSrc: "WNA推計",
+        downstream: [
+          { name: "原子力発電(電力の約8%)", value: "¥約1兆(電気料金按分)", src: "JAIF原子力データ" },
+        ],
+        totalRipple: "¥1兆+", riskNote: "長期備蓄あり(2年分)。短期リスクは低い" },
+    ]
+  },
+  {
+    sector: "石化", color: "#E91E90",
+    goods: [
+      { name: "ナフサ", directImport: "¥約2兆(輸入分。85%が輸入依存)", directSrc: "ICIS/METI石油統計(推計)",
+        downstream: [
+          { name: "エチレン系製品", value: "¥約12兆(石化製品出荷額)", src: "JPCA統計" },
+          { name: "プラスチック成形加工", value: "¥約10兆", src: "日本プラスチック工業連盟" },
+          { name: "自動車樹脂部品", value: "¥約3兆(自動車部品の15-20%)", src: "JAMA推計" },
+          { name: "医薬品原料(中間体)", value: "¥約2兆", src: "厚労省薬事工業生産動態統計" },
+          { name: "★フォトレジスト原料(高純度溶剤)", value: "¥約0.5兆(→半導体波及¥5兆+)", src: "SEMI/JPCA推計" },
+        ],
+        totalRipple: "¥30兆+", riskNote: "輸送・調達の85%が輸入依存(うち73.6%中東(UAE/クウェート/カタール)→全てホルムズ通過)。チョークポイント集中度は極高(EH相当)。供給20%減でクラッカー閾値崩壊→連産品ロック(エチレン/プロピレン/BTX同時減)→石化チェーン全体停止。さらにフォトレジスト原料途絶→世界の半導体製造に波及(日本シェア87-90%)" },
+      { name: "エチレン", directImport: "少量(国内生産主)", directSrc: "JPCA",
+        downstream: [
+          { name: "ポリエチレン(包装材等)", value: "¥約3兆", src: "JPCA販売統計" },
+          { name: "PVC(建材)", value: "¥約1兆", src: "塩ビ工業・環境協会" },
+          { name: "エチレングリコール(繊維/PET)", value: "¥約0.5兆", src: "JPCA" },
+        ],
+        totalRipple: "¥5兆+", riskNote: "原料ナフサ経由で間接依存。中国の大増産が競争圧力" },
+      { name: "プロピレン/BTX", directImport: "少量", directSrc: "JPCA",
+        downstream: [
+          { name: "ポリプロピレン(自動車/容器)", value: "¥約2兆", src: "JPCA" },
+          { name: "合成繊維(PET/ナイロン)", value: "¥約1兆", src: "日本化学繊維協会" },
+          { name: "電子材料(高純度溶剤等)", value: "¥数千億", src: "" },
+        ],
+        totalRipple: "¥4兆+", riskNote: "" },
+    ]
+  },
+  {
+    sector: "レアメタル", color: "#00E5CC",
+    goods: [
+      { name: "レアアース", directImport: "¥約500億($340M)", directSrc: "GTAIC Japan RE Market 2024",
+        downstream: [
+          { name: "NdFeB永久磁石", value: "¥約5,000億", src: "矢野経済研究所 磁石市場2024" },
+          { name: "EV駆動モーター", value: "¥約2兆(EV市場の部品)", src: "IEA EV Outlook 2024" },
+          { name: "風力発電機", value: "¥数千億", src: "GWEC 2024" },
+          { name: "ロボット/FA", value: "¥約1兆(産業用ロボット市場)", src: "IFR World Robotics 2024" },
+          { name: "防衛(誘導装置等)", value: "¥波及不可分", src: "" },
+        ],
+        totalRipple: "¥5兆+", riskNote: "輸入額は小さいが波及倍率100倍超。中国65%依存" },
+      { name: "リチウム", directImport: "¥300億", directSrc: "USGS MCS 2024(推計)",
+        downstream: [
+          { name: "LiB(車載+蓄電)", value: "¥約2兆(国内市場)", src: "矢野経済研究所 LiB市場2024" },
+          { name: "EV完成車", value: "¥22.5兆(自動車輸出額の一部)", src: "JAMA 2024" },
+          { name: "定置用蓄電池", value: "¥約3,000億", src: "METI蓄電池産業戦略" },
+        ],
+        totalRipple: "¥5兆+", riskNote: "EV移行で需要急増。精製の56%が中国" },
+      { name: "コバルト", directImport: "¥300億", directSrc: "USGS MCS 2024",
+        downstream: [
+          { name: "LiB正極材(NMC/NCA)", value: "¥約1兆", src: "矢野経済研究所" },
+          { name: "超合金(ジェットエンジン)", value: "¥数千億", src: "日本製鋼所IR等" },
+        ],
+        totalRipple: "¥2兆+", riskNote: "DRC採掘63%→中国精製73%の二重集中" },
+      { name: "ニッケル", directImport: "¥2,000億", directSrc: "財務省貿易統計(推計)",
+        downstream: [
+          { name: "ステンレス鋼", value: "¥約3兆(SUS出荷額)", src: "日本ステンレス協会" },
+          { name: "LiB(NMC/NCA電池)", value: "¥約1兆", src: "" },
+          { name: "特殊合金(航空宇宙)", value: "¥数千億", src: "" },
+        ],
+        totalRipple: "¥5兆+", riskNote: "インドネシアの輸出規制リスク" },
+      { name: "ガリウム", directImport: "¥30億", directSrc: "USGS MCS 2024",
+        downstream: [
+          { name: "化合物半導体(GaN/GaAs)", value: "¥約3,000億", src: "Yole Développement 2024" },
+          { name: "LED照明", value: "¥約5,000億", src: "JEITA" },
+          { name: "5G基地局RF", value: "¥約2,000億(国内)", src: "総務省5G整備計画" },
+          { name: "防衛(レーダー/電子戦)", value: "¥波及不可分", src: "" },
+        ],
+        totalRipple: "¥1兆+", riskNote: "中国約98%独占(USGS: 610t中600t)。輸出規制発動済。波及倍率数百倍" },
+      { name: "ゲルマニウム", directImport: "¥20億", directSrc: "USGS MCS 2024",
+        downstream: [
+          { name: "光ファイバー", value: "¥約3,000億(日本市場)", src: "矢野経済研究所" },
+          { name: "赤外線光学(暗視装置等)", value: "¥数百億(防衛含)", src: "" },
+        ],
+        totalRipple: "¥4,000億+", riskNote: "中国約86%(USGS: 210t中180t)。通信インフラと防衛に直結" },
+      { name: "タングステン", directImport: "¥500億", directSrc: "USGS MCS 2024(推計)",
+        downstream: [
+          { name: "超硬工具(切削加工)", value: "¥約3,650億", src: "日本工具工業会" },
+          { name: "半導体配線材(Wターゲット)", value: "¥波及:半導体産業全体", src: "" },
+          { name: "防衛(貫通弾/重合金)", value: "¥波及不可分", src: "" },
+        ],
+        totalRipple: "¥1兆+", riskNote: "中国86%精製。製造業の基盤ツール材料" },
+    ]
+  },
+  {
+    sector: "半導体", color: "#3B82F6",
+    goods: [
+      { name: "シリコンウェハ", directImport: "—(日本が輸出側:$1.6B)", directSrc: "IndexBox 2024",
+        downstream: [
+          { name: "→世界の半導体製造", value: "世界$627.6B市場の基盤", src: "SIA/WSTS 2024" },
+        ],
+        totalRipple: "日本の強み(53%シェア)", riskNote: "多結晶Siの一部は海外依存" },
+      { name: "フォトレジスト", directImport: "—(日本が輸出側)", directSrc: "",
+        downstream: [
+          { name: "→世界の半導体リソグラフィ", value: "全ファブに不可欠", src: "Brookings 2024" },
+        ],
+        totalRipple: "日本の強み(87-90%シェア)", riskNote: "EUVレジスト競争で技術優位維持が鍵" },
+      { name: "半導体製造装置", directImport: "—(日本が輸出側:¥4,058億/月)", directSrc: "SEAJ 2024.11",
+        downstream: [
+          { name: "→世界の半導体ファブ", value: "世界装置市場$100B+", src: "SEMI 2024" },
+        ],
+        totalRipple: "日本の強み(コーター88%等)", riskNote: "対中輸出規制で市場縮小リスク" },
+      { name: "ロジックIC(先端チップ)", directImport: "¥約3兆(台湾60%)", directSrc: "財務省貿易統計推計; 台湾シェア60%はAMRO 2024(マクロ統計)",
+        downstream: [
+          { name: "自動車(ADAS/ECU)", value: "¥22.5兆(自動車輸出)", src: "JAMA 2024" },
+          { name: "電子機器(スマホ/PC)", value: "¥10.7兆(電子産業生産額)", src: "JEITA 2023" },
+          { name: "データセンター/AI", value: "¥約2兆(国内DC市場)", src: "IDC Japan 2024" },
+          { name: "産業機器/FA", value: "¥約3兆", src: "NEDO推計" },
+        ],
+        totalRipple: "¥40兆+", riskNote: "台湾有事で自動車・電子・AI・産業機器が全停止" },
+      { name: "メモリ(NAND/DRAM)", directImport: "¥約1兆(韓国主)", directSrc: "財務省貿易統計(推計)",
+        downstream: [
+          { name: "PC/サーバー/スマホ", value: "¥上記電子産業に含む", src: "" },
+          { name: "自動車(車載メモリ)", value: "¥上記に含む", src: "" },
+        ],
+        totalRipple: "¥(ロジックICと重複)", riskNote: "Kioxia国内あり。韓国集中リスクは中程度" },
+      { name: "EUVリソグラフィ", directImport: "¥3,000億(装置1台$150-350M)", directSrc: "ASML IR",
+        downstream: [
+          { name: "先端チップ製造(2nm以下)", value: "将来の半導体産業全体の基盤", src: "" },
+        ],
+        totalRipple: "次世代産業の前提条件", riskNote: "ASML 1社独占。Rapidusの2nm計画の成否を左右" },
+    ]
+  },
+  {
+    sector: "軍需", color: "#FF4757",
+    goods: [
+      { name: "戦闘機", directImport: "¥約1兆(F-35等調達)", directSrc: "防衛省FY2025予算",
+        downstream: [
+          { name: "航空防衛産業", value: "¥約1.5兆(MHI防衛売上等)", src: "SIPRI Top 100 (2024)" },
+          { name: "MRO/部品産業", value: "¥数千億", src: "" },
+        ],
+        totalRipple: "¥3兆+", riskNote: "F-35系統は米LM完全依存。部品供給も米国次第" },
+      { name: "ミサイル/誘導弾", directImport: "¥数千億(Tomahawk等)", directSrc: "FY2025予算(スタンドオフ¥9,390億)",
+        downstream: [
+          { name: "抑止力の経済換算", value: "¥定量化困難(安全保障そのもの)", src: "" },
+        ],
+        totalRipple: "安全保障の根幹", riskNote: "Tomahawk/PAC-3/SM-6/JASSM-ER全て米国" },
+      { name: "艦艇", directImport: "少額(船体は国産)", directSrc: "防衛省",
+        downstream: [
+          { name: "造船産業", value: "¥約5,000億(防衛艦艇)", src: "JMU/MHI/KHI IR" },
+        ],
+        totalRipple: "¥5,000億+", riskNote: "船体は国産だが戦闘システム(イージス)は米国" },
+      { name: "弾薬/火薬", directImport: "少額(原料一部)", directSrc: "",
+        downstream: [
+          { name: "継戦能力", value: "¥定量化困難", src: "" },
+        ],
+        totalRipple: "—", riskNote: "生産能力・備蓄量ともに不足(防衛白書2024)" },
+      { name: "無人機(UAV)", directImport: "¥数百億(FY2025以降拡大)", directSrc: "防衛省概算要求",
+        downstream: [
+          { name: "ISR/偵察能力", value: "¥定量化困難", src: "" },
+        ],
+        totalRipple: "—", riskNote: "国産開発遅延。当面は米/トルコ/イスラエルから輸入" },
+      { name: "統合防空ミサイル防衛", directImport: "¥約8,780億(FY2024)", directSrc: "防衛省FY2024予算概要",
+        downstream: [
+          { name: "国土防衛(弾道ミサイル対処)", value: "¥定量化不能(存立基盤)", src: "" },
+        ],
+        totalRipple: "国家存立の基盤", riskNote: "迎撃体は全て米国製/共同開発。補給は米国次第" },
+    ]
+  },
+];
+
+function App() {
+  const [sector, setSector] = useState("エネルギー");
+  const [open, setOpen] = useState(null);
+  const sectorData = data.find(d => d.sector === sector);
+
+  return (
+    <div style={{ fontFamily: "'Poppins', 'Noto Sans JP', sans-serif", background: "#07070C", color: "#E5E5E5", minHeight: "100vh", padding: "20px 12px" }}>
+      
+      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 4px", color: "#F5F5F5" }}>
+          輸入額 × 下流バリューチェーン波及額マップ
+        </h1>
+        <p style={{ fontSize: 10, color: "#6B7280", margin: "0 0 16px" }}>
+          直接輸入額（出所付き）＋ その財が支える下流産業の付加価値額
+        </p>
+
+        <div style={{ display: "flex", gap: 5, marginBottom: 16, flexWrap: "wrap" }}>
+          {data.map(d => (
+            <button key={d.sector} onClick={() => { setSector(d.sector); setOpen(null); }}
+              style={{
+                padding: "6px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer",
+                border: sector === d.sector ? `2px solid ${d.color}` : "1px solid #2A2A35",
+                background: sector === d.sector ? `${d.color}18` : "#111118",
+                color: sector === d.sector ? d.color : "#8B8B9A", fontWeight: sector === d.sector ? 700 : 400,
+              }}>{d.sector}</button>
+          ))}
+        </div>
+
+        {sectorData.goods.map((g, i) => {
+          const isOpen = open === i;
+          const c = sectorData.color;
+          return (
+            <div key={i} style={{ marginBottom: 8 }}>
+              <button onClick={() => setOpen(isOpen ? null : i)} style={{
+                width: "100%", textAlign: "left", cursor: "pointer", padding: "10px 14px", borderRadius: 6,
+                border: isOpen ? `2px solid ${c}` : "1px solid #1F1F2A", background: isOpen ? `${c}10` : "#0E0E16",
+                display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{g.name}</div>
+                  <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>
+                    直接輸入: <span style={{ color: c, fontWeight: 600 }}>{g.directImport}</span>
+                    <span style={{ marginLeft: 12 }}>下流波及: <span style={{ color: "#00E5CC", fontWeight: 600 }}>{g.totalRipple}</span></span>
+                  </div>
+                </div>
+                <span style={{ color: c, fontSize: 14, flexShrink: 0 }}>{isOpen ? "▼" : "▶"}</span>
+              </button>
+
+              {isOpen && (
+                <div style={{ background: "#0A0A12", border: `1px solid ${c}25`, borderTop: "none", borderRadius: "0 0 6px 6px", padding: 14 }}>
+                  {/* Direct Import */}
+                  <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 200px", background: `${c}10`, border: `1px solid ${c}30`, borderRadius: 6, padding: "8px 12px" }}>
+                      <div style={{ fontSize: 9, color: "#8B8FA3", textTransform: "uppercase", letterSpacing: "0.05em" }}>直接輸入額</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: c, marginTop: 2 }}>{g.directImport}</div>
+                      <div style={{ fontSize: 8, color: "#4A4E63", marginTop: 4, fontStyle: "italic" }}>出所: {g.directSrc}</div>
+                    </div>
+                    <div style={{ flex: "1 1 200px", background: "#1A1A0810", border: "1px solid #00E5CC30", borderRadius: 6, padding: "8px 12px" }}>
+                      <div style={{ fontSize: 9, color: "#8B8FA3", textTransform: "uppercase", letterSpacing: "0.05em" }}>下流波及額（合計）</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#00E5CC", marginTop: 2 }}>{g.totalRipple}</div>
+                      <div style={{ fontSize: 8, color: "#4A4E63", marginTop: 4, fontStyle: "italic" }}>
+                        {g.riskNote && `リスク: ${g.riskNote}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Downstream Chain */}
+                  {g.downstream.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 600, marginBottom: 6 }}>下流バリューチェーン内訳</div>
+                      {g.downstream.map((ds, di) => (
+                        <div key={di} style={{
+                          display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 0",
+                          borderBottom: di < g.downstream.length - 1 ? "1px solid #1A1A25" : "none",
+                        }}>
+                          <span style={{ color: "#00E5CC", fontSize: 10, marginTop: 2, flexShrink: 0 }}>→</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 11, color: "#D1D5E0" }}>
+                              {ds.name}: <span style={{ fontWeight: 600, color: "#E5E5E5" }}>{ds.value}</span>
+                            </div>
+                            {ds.src && <div style={{ fontSize: 8, color: "#4A4E63", fontStyle: "italic" }}>出所: {ds.src}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Grand Total Summary */}
+        <div style={{ marginTop: 20, background: "#0A0A14", border: "1px solid #FF475730", borderRadius: 8, padding: 16 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#FF4757", margin: "0 0 10px" }}>全セクター集計サマリー</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 8 }}>
+            {[
+              { label: "エネルギー直接輸入", val: "¥約21.4兆", ripple: "¥80兆+", note: "電力+物流+鉄鋼+石化の基盤", src: "財務省FY2024" },
+              { label: "ナフサ輸送・調達→石化→半導体", val: "¥約2兆(85%輸入)", ripple: "¥30兆+", note: "プラスチック/自動車/医薬品+★フォトレジスト→半導体", src: "ICIS/JPCA/財務省" },
+              { label: "レアメタル直接輸入", val: "¥約3,650億", ripple: "¥20兆+", note: "EV/磁石/電池/ロボット/防衛", src: "USGS/IEA" },
+              { label: "先端半導体(ロジックIC)", val: "¥約3兆(台湾60%)", ripple: "¥40兆+", note: "自動車¥22.5兆+電子¥10.7兆", src: "財務省貿易統計/JAMA/JEITA" },
+              { label: "防衛装備(米国依存分)", val: "¥約2兆(輸入分推計)", ripple: "国家存立基盤", note: "ミサイル/迎撃体/戦闘機", src: "防衛省FY2025予算" },
+            ].map((r, i) => (
+              <div key={i} style={{ background: "#0A0A0F", border: "1px solid #252530", borderRadius: 6, padding: "10px 12px" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#E5E5E5", marginBottom: 4 }}>{r.label}</div>
+                <div style={{ display: "flex", gap: 16, marginBottom: 4 }}>
+                  <div><span style={{ fontSize: 9, color: "#6B7280" }}>直接</span><div style={{ fontSize: 13, fontWeight: 700, color: "#3B82F6" }}>{r.val}</div></div>
+                  <div><span style={{ fontSize: 9, color: "#6B7280" }}>波及</span><div style={{ fontSize: 13, fontWeight: 700, color: "#00E5CC" }}>{r.ripple}</div></div>
+                </div>
+                <div style={{ fontSize: 9, color: "#8B8FA3" }}>{r.note}</div>
+                <div style={{ fontSize: 8, color: "#4A4E63", fontStyle: "italic", marginTop: 2 }}>出所: {r.src}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 10, fontSize: 10, color: "#8B8FA3", lineHeight: 1.6 }}>
+            ※ 波及額は各産業の出荷額/市場規模であり、当該輸入財への寄与度100%ではない。依存度に応じた加重は行っていない。
+            「その輸入が停止した場合に影響を受ける産業規模」として概算。重複を含む。
+          </div>
+        </div>
+
+        {/* Key Insight */}
+        <div style={{ marginTop: 16, padding: 14, borderRadius: 8, background: "#111118", border: "1px solid #00E5CC20" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#00E5CC", marginBottom: 6 }}>構造的発見: 波及倍率の非対称性</div>
+          <div style={{ fontSize: 11, color: "#D1D5E0", lineHeight: 1.7 }}>
+            レアメタルとガリウム/ゲルマニウムは直接輸入額が極めて小さい（¥20億〜500億）にもかかわらず、
+            下流産業の波及額は数兆〜数十兆円に達する。この「波及倍率の非対称性」こそが安全保障上の本質的リスク。
+            <br/>
+            <span style={{ color: "#00E5CC" }}>ガリウム: 直接輸入¥30億 → 波及¥1兆+ （倍率333倍）</span><br/>
+            <span style={{ color: "#00E5CC" }}>レアアース: 直接輸入¥500億 → 波及¥5兆+ （倍率100倍）</span><br/>
+            <span style={{ color: "#00E5CC" }}>先端ロジックIC: 直接輸入¥3兆 → 波及¥40兆+ （倍率13倍）</span><br/>
+            <span style={{ color: "#FF4757" }}>→ 金額の小さい財こそ、安全保障上のレバレッジが最大</span>
+          </div>
+          <div style={{ fontSize: 8, color: "#4A4E63", marginTop: 6, fontStyle: "italic" }}>
+            出所: 各産業市場規模はJAMA, JEITA, JPCA, 矢野経済研究所, IEA, USGS等の公開統計に基づく著者推計。直接輸入額は財務省貿易統計FY2024。
+            注: 「FY2024」表記はCY2024暦年速報値または直近12ヶ月推計を含む場合がある。Gaシェア≈98%(USGS: 610t中600t), Geシェア≈86%(210t中180t)。出典は公的機関・業界団体の公開データに基づく。
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>26財×製造工程マップ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const allGoods = [
+  // ===== エネルギー =====
+  {
+    sector: "エネルギー", sectorColor: "#FF7A3D", id: "crude_oil",
+    name: "原油", nameEn: "Crude Oil",
+    processes: [
+      { step: "探鉱・掘削", desc: "地震探査→試掘→商業生産。海底油田はFPSO等", players: "Saudi Aramco, ADNOC, INPEX(国内唯一の上流)", japanRole: "権益参加のみ（INPEX イクシス等）" },
+      { step: "パイプライン/タンカー輸送", desc: "産油国→積出港→VLCC(30万DWT級)→日本", players: "商船三井, 日本郵船, 出光タンカー", japanRole: "タンカー運航能力あり" },
+      { step: "常圧蒸留", desc: "原油を350-400℃加熱、蒸留塔で沸点別に分留（LPG/ナフサ/灯油/軽油/残渣油）", players: "ENEOS, 出光興産, コスモ石油", japanRole: "国内精製能力3.3百万bpd（縮小中）" },
+      { step: "分解・改質", desc: "接触分解(FCC)、水素化分解、接触改質でガソリン/ジェット燃料等に転換", players: "同上", japanRole: "国内設備あり" },
+      { step: "脱硫・ブレンド", desc: "水素化脱硫で硫黄除去→各製品規格にブレンド→出荷", players: "同上", japanRole: "国内設備あり" },
+    ],
+    sources: "EIA \"Refining Crude Oil\" (2024); ILO Encyclopedia \"Petroleum Refining Process\"; METI「日本のエネルギー2024」"
+  },
+  {
+    sector: "エネルギー", sectorColor: "#FF7A3D", id: "lng",
+    name: "LNG", nameEn: "Liquefied Natural Gas",
+    processes: [
+      { step: "採掘・集荷", desc: "ガス田から採掘→ギャザリングシステムで処理施設へ", players: "Shell, TotalEnergies, QatarEnergy, INPEX", japanRole: "権益参加（イクシス、サハリン2等）" },
+      { step: "前処理", desc: "H₂S/CO₂除去（アミン吸収）、脱水、NGL分離", players: "液化プラントに統合", japanRole: "エンジニアリング（千代田化工等）" },
+      { step: "液化", desc: "-162℃に冷却し体積1/600に。C3-MR法/カスケード法/AP-X法", players: "APCI, Linde, 千代田化工(SPB技術)", japanRole: "千代田化工SPB液化技術" },
+      { step: "LNG船輸送", desc: "メンブレン型/Moss型LNG船（17万m³級）で海上輸送", players: "商船三井, 日本郵船, 川崎汽船", japanRole: "世界有数のLNG船保有" },
+      { step: "受入・再ガス化", desc: "LNG基地でタンク貯蔵→気化器(ORV/SCV)でガスに戻す→パイプライン配送", players: "東京ガス, 大阪ガス, JERA, 東邦ガス", japanRole: "国内37受入基地（世界最大級）" },
+    ],
+    sources: "DOE \"LNG Value Chain Fact Sheet\"; UNECE WPG LNG Study Ch.2; Eni \"LNG Regasification\"; ERIA Ch.3 (2018)"
+  },
+  {
+    sector: "エネルギー", sectorColor: "#FF7A3D", id: "coal",
+    name: "石炭", nameEn: "Coal",
+    processes: [
+      { step: "露天/坑内採掘", desc: "露天掘り（表土剥離→採炭）または坑内掘り（長壁式/柱房式）", players: "BHP, Glencore, 豪Whitehaven, インドネシア各社", japanRole: "国内炭鉱ほぼ閉山" },
+      { step: "選炭・品位調整", desc: "破砕→比重選別→浮遊選鉱で灰分・硫黄除去、粒度調整", players: "産炭国で実施", japanRole: "—" },
+      { step: "バルク輸送", desc: "バルクキャリア（ケープサイズ等）で海上輸送", players: "商船三井, 日本郵船等", japanRole: "バルク船運航" },
+      { step: "火力発電/製鉄", desc: "微粉炭焚きボイラーで発電 or コークス炉で冶金用コークス製造", players: "JERA, J-POWER, 日本製鉄, JFE", japanRole: "国内発電・製鉄で消費" },
+    ],
+    sources: "EIA \"Japan Country Analysis\" (2024); IEA \"Japan Energy Mix\""
+  },
+  {
+    sector: "エネルギー", sectorColor: "#FF7A3D", id: "uranium",
+    name: "ウラン", nameEn: "Uranium",
+    processes: [
+      { step: "採掘", desc: "露天掘り/坑内掘り/ISL(原位置浸出)でウラン鉱石を採取", players: "Kazatomprom(カザフ), Cameco(加), Orano(仏)", japanRole: "国内鉱山なし" },
+      { step: "精錬（イエローケーキ）", desc: "鉱石を酸/アルカリ浸出→溶媒抽出→U₃O₈(イエローケーキ)に濃縮", players: "採掘国で実施", japanRole: "—" },
+      { step: "転換（UF₆）", desc: "U₃O₈→UF₆(六フッ化ウラン)に変換。濃縮の前処理", players: "Cameco, Orano, ConverDyn(米)", japanRole: "—" },
+      { step: "濃縮", desc: "遠心分離法でU-235を0.7%→3-5%に濃縮（軽水炉用）。世界SWU市場ではRosatom46%だが、日本はOrano40-50%/Urenco30-40%で調達しRosatom非依存", players: "Orano(仏,JNFL/MHI出資), Urenco(欧4国), JNFL六ケ所, [世界:Rosatom46%/CNNC10%]", japanRole: "JNFL六ケ所2-5%。日本の濃縮はOrano+Urenco中心(SPF/IINAが非依存を明記)" },
+      { step: "燃料加工", desc: "UO₂粉末→ペレット成形→被覆管封入→燃料集合体", players: "三菱原子燃料, GNF-J(日立GE), 原子燃料工業", japanRole: "国内燃料加工能力あり" },
+      { step: "原子炉運転", desc: "PWR/BWRで核分裂→発電。使用済燃料は冷却プールへ", players: "関西電力, 九州電力, 四国電力等", japanRole: "再稼働進行中（2024年12基稼働）" },
+    ],
+    sources: "WNA \"Nuclear Fuel Cycle\"; JAIF; JNFL公式"
+  },
+  // ===== 石化 =====
+  {
+    sector: "石化", sectorColor: "#E91E90", id: "naphtha",
+    name: "ナフサ", nameEn: "Naphtha",
+    processes: [
+      { step: "原油蒸留からの留出", desc: "常圧蒸留塔30-180℃留分としてナフサを分留", players: "ENEOS, 出光興産等の国内製油所", japanRole: "国内精製あり（ただし減少中）" },
+      { step: "輸送・調達", desc: "石化用ナフサの85%が輸入依存。うち73.6%が中東（UAE30.4%/クウェート21.6%/カタール15.4%→全てホルムズ海峡を通過）。国別には分散するが地理的チョークポイントに集中", players: "三菱商事, 三井物産等の商社。UAE30.4%, クウェート21.6%, カタール15.4%, 韓国12.2%等(中東計73.6%)", japanRole: "85%輸入依存。ホルムズ通過率が高く、チョークポイント集中度は極高(EH相当)" },
+      { step: "前処理（脱硫等）", desc: "水素化脱硫で硫黄/窒素/金属を除去、クラッカー投入品質に調整", players: "石化コンビナート内", japanRole: "国内処理" },
+      { step: "スチームクラッキング", desc: "800-850℃で熱分解→エチレン/プロピレン/ブタジエン/BTX等を生成", players: "三井化学, 住友化学, 丸善石化, 出光等", japanRole: "国内12基のナフサクラッカー（640万t/年能力）" },
+    ],
+    sources: "ICIS Naphtha Analytics (2025); JPCA統計; C&EN \"A reckoning for Japan's petrochemical industry\" (2024)"
+  },
+  {
+    sector: "石化", sectorColor: "#E91E90", id: "ethylene",
+    name: "エチレン", nameEn: "Ethylene",
+    processes: [
+      { step: "スチームクラッキング", desc: "ナフサを800-850℃で熱分解。エチレン収率30-35%", players: "三井化学, 住友化学, 旭化成, 丸善石化", japanRole: "国内12基（稼働率70%以下に低下）" },
+      { step: "急冷・分離", desc: "分解ガスを急冷(クエンチ)→圧縮→深冷分離でC₂/C₃/C₄/BTXを分離", players: "同上（クラッカー統合設備）", japanRole: "国内設備" },
+      { step: "重合（ポリエチレン等）", desc: "高圧法/低圧法/気相法でLDPE/HDPE/LLDPE等を製造", players: "三井化学, 住友化学, 日本ポリエチレン", japanRole: "国内生産" },
+      { step: "誘導品製造", desc: "酸化エチレン→エチレングリコール、塩化ビニル、スチレン等へ展開", players: "三菱ケミカル, 信越化学, 東ソー等", japanRole: "国内化学産業" },
+    ],
+    sources: "JPCA; SunSirs (2025); Market Research Future \"Japan Ethylene Market\" (2024)"
+  },
+  {
+    sector: "石化", sectorColor: "#E91E90", id: "propylene_btx",
+    name: "プロピレン/BTX", nameEn: "Propylene/BTX",
+    processes: [
+      { step: "スチームクラッカー副産物", desc: "ナフサ分解でプロピレン15%収率。BTX(ベンゼン/トルエン/キシレン)も副生", players: "ナフサクラッカー各社", japanRole: "国内生産" },
+      { step: "FCC(接触分解)由来", desc: "製油所FCCからもプロピレン生成（石油精製副産物）", players: "ENEOS等", japanRole: "製油所統合" },
+      { step: "分離精製", desc: "蒸留/抽出蒸留でポリマーグレードに精製", players: "石化コンビナート内", japanRole: "国内処理" },
+      { step: "誘導品", desc: "PP(ポリプロピレン)、アクリロニトリル、フェノール、PET原料等", players: "三井化学, 住友化学, 三菱ケミカル", japanRole: "繊維/自動車/電子材料" },
+    ],
+    sources: "JPCA統計; EIA Petrochemical Overview"
+  },
+  // ===== レアメタル =====
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "ree",
+    name: "レアアース(希土類)", nameEn: "Rare Earth Elements",
+    processes: [
+      { step: "採掘", desc: "露天掘り(バストネサイト:米Mountain Pass等)、砂鉱床(モナザイト:豪)、イオン吸着鉱(中国南部)", players: "中国(60-70%採掘), MP Materials(米), Lynas(豪)", japanRole: "国内鉱山なし。深海泥REE研究中（南鳥島）" },
+      { step: "選鉱", desc: "粉砕→磁選/浮遊選鉱/比重選別でREO精鉱(60-70%)に濃縮", players: "採掘国で実施", japanRole: "—" },
+      { step: "酸/アルカリ分解", desc: "硫酸分解(150-220℃)またはNaOH分解でREを溶出。Th分離も必要", players: "中国が85-90%処理, Lynas(マレーシア), Solvay等", japanRole: "—" },
+      { step: "溶媒抽出分離", desc: "液-液溶媒抽出(PC88A等)で個別元素(Nd, Pr, Dy, Tb等)に分離。数百段の抽出槽", players: "中国が圧倒的。CSIS(2025): 「mine-to-magnet supply chain by 2027」が米国目標", japanRole: "一部分離能力あり（昭和電工等）" },
+      { step: "金属還元", desc: "フッ化物→金属還元(Ames Process等)。溶融塩電解またはカルシウム還元", players: "中国主体", japanRole: "住友金属鉱山等に一部能力" },
+      { step: "合金/磁石製造", desc: "NdFeB焼結磁石: 粉砕→成形→焼結→着磁。SmCo磁石も", players: "中国(94%永久磁石), 信越化学, TDK, 日立金属", japanRole: "高性能磁石製造は日本が技術的優位" },
+    ],
+    sources: "Britannica \"REE Processing\"; CSIS \"Developing REE Processing Hubs\" (2025); EPA Rare Earths Profile; Science History Institute"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "lithium",
+    name: "リチウム", nameEn: "Lithium",
+    processes: [
+      { step: "採掘/鹵水汲上", desc: "硬岩鉱(スポジュメン:豪)→粉砕選鉱、または塩湖鹵水(チリ/アルゼンチン)→蒸発濃縮", players: "Albemarle(米), SQM(チリ), Pilbara(豪), Tianqi(中)", japanRole: "国内資源なし" },
+      { step: "精製(Li₂CO₃/LiOH)", desc: "スポジュメン→焙焼(1050℃)→硫酸浸出→Li₂CO₃沈殿。鹵水→蒸発→Li₂CO₃。さらにLiOH転換", players: "中国が56%精製, チリ, オーストラリア", japanRole: "—" },
+      { step: "正極材前駆体", desc: "Li化合物+Ni/Co/Mn化合物→共沈法で前駆体(NCA/NMC/LFP等)製造", players: "中国(85%前駆体), 住友金属鉱山, 田中化学研究所", japanRole: "住友金属鉱山がNCA正極材で世界的地位" },
+      { step: "正極材/負極材製造", desc: "前駆体を焼成→正極活物質。天然/人造黒鉛を被覆処理→負極材", players: "中国(97%負極材), 住友金属鉱山, 日立化成", japanRole: "一部正極材生産" },
+      { step: "セル製造", desc: "電極塗工→乾燥→圧延→切断→積層/巻回→電解液注入→化成→検査", players: "CATL(中), BYD(中), LG(韓), Samsung SDI(韓), Panasonic(日)", japanRole: "Panasonicがテスラ向け。国内シェア低下中" },
+    ],
+    sources: "CSIS \"Friendshoring LIB Supply Chain\" (2024); RMI \"EV Battery Supply Chain\" (2023); NREL/DOE LIB Report"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "cobalt",
+    name: "コバルト", nameEn: "Cobalt",
+    processes: [
+      { step: "銅/ニッケル副産物採掘", desc: "DRCの銅コバルト鉱床から副産物として採掘。または大洋州のニッケルラテライト鉱", players: "Glencore, CMOC(中), ERG(カザフ), DRC地場", japanRole: "—" },
+      { step: "湿式製錬", desc: "酸浸出→溶媒抽出→電解精製でCo金属/CoSO₄を回収", players: "中国が73%精製, フィンランド(Freeport Cobalt), 住友金属鉱山", japanRole: "住友金属鉱山がニウエル(フィリピン)等で精錬" },
+      { step: "電池材料/超合金", desc: "CoSO₄→正極材前駆体。Co金属→ジェットエンジン超合金、超硬工具", players: "前駆体は中国主体, 住友金属鉱山", japanRole: "超合金は日本製鋼所等" },
+    ],
+    sources: "IEA Global Critical Minerals Outlook 2025; USGS MCS 2024; Cobalt Institute"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "nickel",
+    name: "ニッケル", nameEn: "Nickel",
+    processes: [
+      { step: "採掘", desc: "硫化鉱(カナダ/ロシア)→坑内掘り。ラテライト鉱(インドネシア/フィリピン)→露天掘り", players: "Vale, Nornickel, PT Vale Indonesia, 中国系各社", japanRole: "—" },
+      { step: "製錬（乾式/湿式）", desc: "硫化鉱:溶鉱炉→転炉→電解精製。ラテライト:HPAL(高圧硫酸浸出)→MHP(水酸化物沈殿)", players: "インドネシア(71%精製Ni), 中国, 住友金属鉱山", japanRole: "住友金属鉱山(ポマラ:HPAL)" },
+      { step: "最終製品", desc: "電池用硫酸ニッケル、ステンレス鋼用フェロニッケル、特殊合金", players: "住友金属鉱山, 日本冶金工業, 大平洋金属", japanRole: "ステンレス/電池材料製造" },
+    ],
+    sources: "IEA GCMO 2025; USGS MCS 2024; 住友金属鉱山IR"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "gallium",
+    name: "ガリウム", nameEn: "Gallium",
+    processes: [
+      { step: "ボーキサイト/亜鉛副産物", desc: "アルミナ製造(バイヤー法)のバイヤー液からGa回収、または亜鉛精錬残渣から回収", players: "中国(約98%精製: USGS 610t中600t), 日本, ロシア, ウクライナ", japanRole: "DOWAホールディングス等に微量能力" },
+      { step: "精製(4N-7N)", desc: "電解精製→ゾーンリファイニングで4N(99.99%)～7N(99.99999%)に", players: "中国主体", japanRole: "高純度化技術あり" },
+      { step: "化合物半導体", desc: "GaAs(ヒ化ガリウム)、GaN(窒化ガリウム)のバルク結晶/エピタキシャル成長", players: "住友電工, 三菱化学, Freiberger(独)", japanRole: "住友電工がGaAs/GaN基板で世界的地位" },
+      { step: "デバイス製造", desc: "LED、パワー半導体、5G RF、レーダーモジュール等", players: "日亜化学, 豊田合成, ソニーセミコンダクタ等", japanRole: "LED/パワー半導体で強み" },
+    ],
+    sources: "USGS MCS 2024; IEA GCMO 2025; Reuters (2024年12月中国輸出規制報道)"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "germanium",
+    name: "ゲルマニウム", nameEn: "Germanium",
+    processes: [
+      { step: "亜鉛精錬副産物", desc: "亜鉛製錬のフライアッシュ/残渣からGe回収。一部は石炭灰からも", players: "中国(約86%精製: USGS 210t中180t), ベルギー(Umicore), カナダ", japanRole: "—" },
+      { step: "塩化/蒸留精製", desc: "GeCl₄蒸留→加水分解→GeO₂→水素還元でGe金属。ゾーン精製で高純度化", players: "中国, Umicore", japanRole: "微量の回収能力" },
+      { step: "光学/半導体応用", desc: "赤外線光学レンズ(8-12μm帯)、光ファイバードーパント、SiGeチップ基板", players: "II-VI(Coherent), Umicore, 古河電工(光ファイバ)", japanRole: "光ファイバ製造で使用" },
+    ],
+    sources: "USGS MCS 2024; IEA GCMO 2025; MOFCOM Announcement No.46 (2024.12)"
+  },
+  {
+    sector: "レアメタル", sectorColor: "#00E5CC", id: "tungsten",
+    name: "タングステン", nameEn: "Tungsten",
+    processes: [
+      { step: "採掘", desc: "灰重石(CaWO₄)またはマンガン重石((Fe,Mn)WO₄)を坑内/露天掘り", players: "中国(81.5%生産), ロシア, ベトナム, ボリビア", japanRole: "国内鉱山なし" },
+      { step: "精錬", desc: "酸/アルカリ分解→APT(パラタングステン酸アンモニウム)→WO₃→水素還元でW金属粉末", players: "中国(86%精製), H.C. Starck(独), Global Tungsten(オーストリア)", japanRole: "—" },
+      { step: "炭化タングステン(WC)", desc: "W粉+炭素を1400-1600℃で反応→WC粉末。Co等をバインダーとして焼結", players: "Sandvik(スウェーデン), Kennametal(米), 三菱マテリアル, 住友電工", japanRole: "超硬工具大手（三菱マテリアル、住友電工）" },
+      { step: "最終製品", desc: "切削工具、半導体配線(Wスパッタリングターゲット)、軍需(貫通弾芯)、電極", players: "同上+東京タングステン", japanRole: "超硬工具・半導体材料で高い技術力" },
+    ],
+    sources: "USGS MCS 2024; MOFCOM輸出規制(2025年)"
+  },
+  // ===== 半導体 =====
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "si_wafer",
+    name: "シリコンウェハ", nameEn: "Silicon Wafers",
+    processes: [
+      { step: "多結晶Si精製", desc: "珪石(SiO₂)→冶金級Si→シーメンス法/FBR法でポリシリコン(11N)", players: "Wacker(独), Hemlock(米), OCI(韓), トクヤマ(日)", japanRole: "トクヤマがポリシリコン生産" },
+      { step: "単結晶引上(CZ法)", desc: "チョクラルスキー法で融液からインゴット(300mm径)を引上。FZ法は高抵抗用", players: "信越化学, SUMCO（合計53%世界シェア）", japanRole: "★信越+SUMCO=世界の53%。圧倒的強み" },
+      { step: "切断・研磨", desc: "ワイヤーソーでウェハに切断→ラッピング→化学機械研磨(CMP)→鏡面仕上げ", players: "信越化学, SUMCO", japanRole: "同上" },
+      { step: "エピタキシャル成長", desc: "必要に応じCVDでエピ層を成長（パワー半導体等向け）", players: "信越化学, SUMCO, Siltronic(独)", japanRole: "国内対応" },
+    ],
+    sources: "Brookings \"Renaissance of Japanese Semiconductor Industry\" (2024); ITA \"Japan-Semiconductors\" (2024)"
+  },
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "photoresist",
+    name: "フォトレジスト", nameEn: "Photoresist",
+    processes: [
+      { step: "樹脂/感光剤合成", desc: "ノボラック樹脂/PHS系ポリマー+光酸発生剤(PAG)を有機溶媒に溶解", players: "JSR, 東京応化工業(TOK), 信越化学, 住友化学", japanRole: "★日本勢が87-90%世界シェア" },
+      { step: "配合・精密濾過", desc: "サブnmレベルの不純物を除去。金属イオンppt→ppq管理", players: "同上+Fujifilm Electronics Materials", japanRole: "超高純度化学の強み" },
+      { step: "EUV向けレジスト", desc: "化学増幅型からメタルオキサイド(MOR)レジストへ。13.5nm EUV用", players: "JSR(INPRIAブランド), 東京応化, 信越化学", japanRole: "EUVレジスト開発最前線" },
+      { step: "ファブへ供給", desc: "TSMC/Samsung/Intel等のファブに直接供給。品質認定に数年", players: "同上", japanRole: "グローバル供給" },
+    ],
+    sources: "Brookings 2024; Yole Développement推計"
+  },
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "spe",
+    name: "半導体製造装置", nameEn: "Semiconductor Equipment",
+    processes: [
+      { step: "設計・開発", desc: "プロセスシミュレーション→プロトタイプ→顧客ファブでの認定。R&D投資が巨額", players: "TEL, SCREEN, Advantest, ディスコ, Lasertec, KOKUSAI", japanRole: "★コーター/デベロッパー88%、洗浄60-80%世界シェア" },
+      { step: "精密部品製造", desc: "超精密光学系、真空チャンバー、セラミックス部品、特殊ガス供給系", players: "日本電子, キヤノン(FPA), ニコン, 浜松ホトニクス", japanRole: "精密加工産業の集積" },
+      { step: "組立・試験", desc: "クリーンルームで組立→動作試験→顧客サイトに搬入", players: "TEL(府中/宮城), SCREEN(彦根), Advantest(群馬)", japanRole: "国内製造拠点" },
+      { step: "据付・サポート", desc: "ファブへの装置据付→プロセス条件出し→長期メンテナンス契約", players: "同上（現地サービス体制）", japanRole: "グローバルサービス網" },
+    ],
+    sources: "SEAJ Statistics (2024); ITA \"Japan-Semiconductors\" (2024); Brookings (2024)"
+  },
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "logic_ic",
+    name: "ロジックIC（先端チップ）", nameEn: "Advanced Logic ICs",
+    processes: [
+      { step: "設計(EDA)", desc: "RTL設計→論理合成→配置配線→マスクデータ生成。AIアクセラレータ等", players: "Synopsys, Cadence(米2社寡占), Siemens EDA", japanRole: "EDAは米国完全依存" },
+      { step: "マスク製造", desc: "電子ビームでクロムマスク(レティクル)に回路パターンを描画", players: "大日本印刷(DNP), 凸版, Photronics(米)", japanRole: "DNP/凸版で世界の~30%" },
+      { step: "前工程(ファウンドリ)", desc: "成膜→リソグラフィ→エッチング→イオン注入→CMP を20-30回繰返し", players: "TSMC(台60%), Samsung(韓), Intel(米), Rapidus(日・2027目標)", japanRole: "★TSMC JASM(熊本)進出。Rapidus 2nm挑戦中" },
+      { step: "後工程(OSAT)", desc: "ウェハテスト→ダイシング→ダイアタッチ→ワイヤボンド/フリップチップ→モールド→最終テスト", players: "ASE(台), Amkor(米/韓), JCET(中)", japanRole: "国内OSAT脆弱（Brookings指摘）" },
+      { step: "先端パッケージング", desc: "CoWoS/InFO等2.5D/3D実装。HBM統合。AI向け需要急拡大", players: "TSMC(CoWoS), Samsung, 長瀬産業(ABF基板:味の素)", japanRole: "★ABF(味の素ビルドアップフィルム)が世界必須材料" },
+    ],
+    sources: "Brookings 2024; TrendForce (ファウンドリシェア); Renesas 2025"
+  },
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "memory",
+    name: "メモリ（NAND/DRAM）", nameEn: "Memory Chips",
+    processes: [
+      { step: "設計", desc: "メモリセルアレイ+周辺回路設計。3D NANDは200層超の積層構造", players: "Samsung, SK Hynix, Micron, Kioxia/WD", japanRole: "Kioxia(旧東芝メモリ)が3D NAND開発" },
+      { step: "前工程", desc: "高アスペクト比エッチング、多層薄膜成膜が鍵。NAND:チャネルホールエッチ等", players: "Samsung(韓), SK Hynix(韓), Micron(米/広島), Kioxia(四日市/北上)", japanRole: "Kioxia+WD JV(四日市/北上), Micron広島" },
+      { step: "HBM(高帯域メモリ)", desc: "DRAMダイをTSV(貫通電極)で積層。AI/GPU向け需要爆発", players: "SK Hynix(シェア首位), Samsung, Micron", japanRole: "Micron広島でHBM生産検討" },
+      { step: "後工程・テスト", desc: "ダイシング→パッケージ→最終テスト。テスト装置はAdvantest(日)が首位", players: "OSAT各社, Advantest(テスター)", japanRole: "★Advantestがメモリテスターで世界首位級" },
+    ],
+    sources: "SEAJ (2024); Wikipedia \"Semiconductor industry in Japan\" (2025); Kioxia IR"
+  },
+  {
+    sector: "半導体", sectorColor: "#3B82F6", id: "euv",
+    name: "EUVリソグラフィ", nameEn: "EUV Lithography",
+    processes: [
+      { step: "光源生成", desc: "Snドロップレットに高出力CO₂レーザーを照射→13.5nm EUVプラズマ生成", players: "ASML(蘭)+ Trumpf(独:レーザー)+ Zeiss(独:光学系)", japanRole: "ギガフォトン（レーザー光源開発参画）" },
+      { step: "反射光学系", desc: "Mo/Si多層膜ミラー6枚で極端紫外光を反射・集光。面精度はピコメートル級", players: "Zeiss(独)が独占", japanRole: "—" },
+      { step: "露光装置組立", desc: "光源+光学系+ウェハステージ+レティクルステージ統合。1台$150-350M", players: "★ASML 1社独占（High-NA EUV含む）", japanRole: "部品供給（浜松ホトニクス等）あり" },
+      { step: "ファブ導入・運用", desc: "稼働率向上が課題。ペリクル(保護膜)、マスクブランクスも必要", players: "TSMC, Samsung, Intel, Rapidus(導入予定)", japanRole: "AGC(ペリクル), HOYA(マスクブランクス)" },
+    ],
+    sources: "ASML公式; Brookings (2024); Hogan Lovells \"Japan's Chip Equipment Export Rules\" (2023)"
+  },
+  // ===== 軍需 =====
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "fighter",
+    name: "戦闘機", nameEn: "Fighter Aircraft",
+    processes: [
+      { step: "設計/開発", desc: "ステルス形状設計、アビオニクス統合、エンジン開発。10-20年スパン", players: "Lockheed Martin(F-35), BAE/Leonardo/MHI(GCAP)", japanRole: "GCAP(次期戦闘機)で日英伊共同開発。MHI主契約" },
+      { step: "機体製造", desc: "複合材/チタン合金の精密加工・組立。F-35は米LMが主、日本FACO(名古屋)", players: "Lockheed Martin, MHI(FACO/最終組立)", japanRole: "F-35A FACO(三菱重工小牧南工場)" },
+      { step: "エンジン", desc: "ジェットエンジン開発・製造。F-35:P&W F135, GCAP:RR/IHI/Avio共同", players: "Pratt & Whitney, Rolls-Royce, IHI", japanRole: "IHIがGCAPエンジン参画、XF9-1実証済" },
+      { step: "アビオニクス", desc: "レーダー(AESA)、電子戦装置、統合コックピット", players: "Raytheon, Northrop Grumman, 三菱電機", japanRole: "三菱電機がAESAレーダー開発" },
+      { step: "MRO(維持整備)", desc: "エンジン/機体の定期整備、アップグレード", players: "MHI, IHI, KHI（国内MRO体制）", japanRole: "F-35アジア太平洋MRO拠点" },
+    ],
+    sources: "防衛省FY2025予算概要; SIPRI 2024; MHI IR"
+  },
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "missile",
+    name: "ミサイル/誘導弾", nameEn: "Missiles & Guided Munitions",
+    processes: [
+      { step: "設計/開発", desc: "空力設計、誘導制御(GPS/INS/画像認識)、弾頭、推進系の統合設計", players: "Raytheon, Lockheed Martin, MBDA, MHI(12式改)", japanRole: "12式地対艦改(射程延伸型)を国産開発" },
+      { step: "推進系製造", desc: "固体ロケットモーター/ターボジェット巡航エンジン/ラムジェット", players: "Aerojet Rocketdyne(米), IHI(日), MHI(日)", japanRole: "IHI/MHIが国産ミサイル推進系" },
+      { step: "シーカー/誘導装置", desc: "アクティブレーダー、赤外線画像(IIR)、GPS/INS複合誘導", players: "Raytheon, 三菱電機, NEC, 東芝", japanRole: "一部国産シーカー開発能力あり" },
+      { step: "組立/試験/納入", desc: "弾体組立→環境試験→発射試験→量産/備蓄", players: "MHI(12式等), Raytheon(Tomahawk, PAC-3)", japanRole: "Tomahawk/JASSM-ER/SM-6は米輸入" },
+    ],
+    sources: "防衛省FY2025予算概要; ATLA"
+  },
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "naval",
+    name: "艦艇", nameEn: "Naval Vessels",
+    processes: [
+      { step: "基本/詳細設計", desc: "船体構造、推進系、戦闘システム統合設計", players: "JMU(ジャパンマリンユナイテッド), MHI, KHI", japanRole: "護衛艦/潜水艦は国内設計" },
+      { step: "船体建造", desc: "ブロック建造法→船台/ドックで搭載→進水→艤装", players: "JMU(横浜/磯子), MHI(長崎), KHI(神戸)", japanRole: "★艦艇建造は国内2社体制(MHI/KHI潜水艦)" },
+      { step: "戦闘システム", desc: "イージスシステム、FCS-3等の戦闘指揮システム、各種センサー統合", players: "Lockheed Martin(イージス), 三菱電機, NEC", japanRole: "イージスは米国依存。FCS-3は国産" },
+      { step: "兵装搭載", desc: "VLS、CIWS、魚雷発射管等の武器システム搭載", players: "米国製VLS, 国産装備混在", japanRole: "混合依存" },
+    ],
+    sources: "防衛白書2024; Jane's Fighting Ships; 防衛省年次報告"
+  },
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "ammo",
+    name: "弾薬/火薬", nameEn: "Ammunition & Explosives",
+    processes: [
+      { step: "火薬原料調達", desc: "硝酸アンモニウム、TNT原料、HMX/RDX等の鈍感爆薬原料", players: "原料は一部輸入依存", japanRole: "化学産業から供給（日本化薬等）" },
+      { step: "装薬/弾体製造", desc: "発射薬/炸薬の充填、弾殻プレス成形、信管組立", players: "ダイキン工業, 日本工機, 旭化成(推進薬)", japanRole: "生産能力限定的（継戦能力の課題）" },
+      { step: "備蓄/管理", desc: "弾薬庫での長期保管、定期点検、老朽化更新", players: "防衛省/自衛隊", japanRole: "備蓄量の不足が指摘" },
+    ],
+    sources: "防衛白書2024; 読売新聞「継戦能力」特集; ATLA"
+  },
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "uav",
+    name: "無人機(UAV)", nameEn: "Drones / UAV",
+    processes: [
+      { step: "設計/開発", desc: "機体設計、自律飛行制御、通信リンク、ペイロード統合", players: "General Atomics(MQ-9B), Shield AI(V-BAT), Baykar(トルコ)", japanRole: "国産UAV開発遅延。スバル、三菱重工等が研究" },
+      { step: "機体製造", desc: "複合材機体、電動/ジェット推進系、センサーポッド統合", players: "同上", japanRole: "当面は輸入依存" },
+      { step: "ソフトウェア/AI", desc: "自律航法、画像認識、群制御(スウォーム)、データリンク", players: "米イスラエル企業が先行", japanRole: "研究段階" },
+      { step: "運用/MRO", desc: "地上管制局、データリンク基盤整備、整備体制構築", players: "自衛隊（体制構築中）", japanRole: "FY2026以降本格配備" },
+    ],
+    sources: "防衛省FY2026概算要求; 防衛白書2024"
+  },
+  {
+    sector: "軍需", sectorColor: "#FF4757", id: "iamd",
+    name: "統合防空ミサイル防衛", nameEn: "IAMD",
+    processes: [
+      { step: "センサー網", desc: "BMD対応レーダー(AN/SPY-7等)、早期警戒衛星(米SBIRS連携)", players: "Lockheed Martin(SPY-7), Raytheon, 三菱電機", japanRole: "イージスシステム搭載護衛艦" },
+      { step: "迎撃体製造", desc: "PAC-3 MSE(短距離)、SM-3 Block IIA(中層/日米共同)、SM-6(多用途)", players: "Raytheon(PAC-3), Raytheon/MHI(SM-3 IIA), Raytheon(SM-6)", japanRole: "SM-3 Block IIA日米共同開発（MHI担当ノーズコーン等）" },
+      { step: "GPI(滑空段階迎撃)", desc: "極超音速滑空兵器対処用。日米共同開発中", players: "MDA(米)+ATLA(日)", japanRole: "共同開発参画" },
+      { step: "C2(指揮統制)", desc: "JADGE(自動警戒管制システム)で陸海空の防空網を統合", players: "NEC, 三菱電機（JADGE担当）", japanRole: "国産C2システム" },
+    ],
+    sources: "防衛省FY2024/2025予算概要; MDA公式; CSIS Missile Threat"
+  },
+];
+
+const sectorNames = ["エネルギー", "石化", "レアメタル", "半導体", "軍需"];
+const sectorColors = { "エネルギー": "#FF7A3D", "石化": "#E91E90", "レアメタル": "#00E5CC", "半導体": "#3B82F6", "軍需": "#FF4757" };
+
+function App() {
+  const [activeSector, setActiveSector] = useState("エネルギー");
+  const [expandedGood, setExpandedGood] = useState(null);
+
+  const goods = allGoods.filter(g => g.sector === activeSector);
+  const color = sectorColors[activeSector];
+
+  return (
+    <div style={{ fontFamily: "'Poppins', 'Poppins', 'Noto Sans JP', sans-serif", background: "#08080D", color: "#E5E5E5", minHeight: "100vh", padding: "20px 12px" }}>
+      
+
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", background: "#0A0A14" }}>
+          26財 × 製造工程マップ ─ 日本の輸出入依存構造
+        </h1>
+        <p style={{ fontSize: 11, color: "#6B7280", margin: "0 0 20px" }}>各財をクリックすると工程詳細・プレイヤー・日本の立ち位置・出所が展開されます</p>
+
+        {/* Sector Tabs */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+          {sectorNames.map(s => (
+            <button key={s} onClick={() => { setActiveSector(s); setExpandedGood(null); }}
+              style={{
+                padding: "7px 14px", borderRadius: 6, fontSize: 12, cursor: "pointer",
+                border: activeSector === s ? `2px solid ${sectorColors[s]}` : "1px solid #333",
+                background: activeSector === s ? `${sectorColors[s]}20` : "#14141C",
+                color: activeSector === s ? sectorColors[s] : "#8B8FA3",
+                fontWeight: activeSector === s ? 700 : 400,
+              }}>
+              {s}（{allGoods.filter(g => g.sector === s).length}財）
+            </button>
+          ))}
+        </div>
+
+        {/* Goods */}
+        {goods.map((good, gi) => (
+          <div key={good.id} style={{ marginBottom: 12 }}>
+            <button
+              onClick={() => setExpandedGood(expandedGood === good.id ? null : good.id)}
+              style={{
+                width: "100%", textAlign: "left", cursor: "pointer",
+                padding: "12px 16px", borderRadius: 8,
+                border: expandedGood === good.id ? `2px solid ${color}` : "1px solid #252530",
+                background: expandedGood === good.id ? `${color}12` : "#111118",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+              <div>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#E5E5E5" }}>{good.name}</span>
+                <span style={{ fontSize: 11, color: "#6B7280", marginLeft: 8 }}>{good.nameEn}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, color: "#8B8FA3" }}>{good.processes.length}工程</span>
+                <span style={{ color: color, fontSize: 16 }}>{expandedGood === good.id ? "−" : "+"}</span>
+              </div>
+            </button>
+
+            {expandedGood === good.id && (
+              <div style={{ background: "#0D0D14", border: `1px solid ${color}30`, borderTop: "none", borderRadius: "0 0 8px 8px", padding: "16px" }}>
+                {/* Process Steps */}
+                {good.processes.map((p, pi) => (
+                  <div key={pi} style={{ display: "flex", gap: 12, marginBottom: pi < good.processes.length - 1 ? 12 : 0, position: "relative" }}>
+                    {/* Step indicator */}
+                    <div style={{ flexShrink: 0, width: 32, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%",
+                        background: `${color}25`, border: `2px solid ${color}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700, color: color,
+                      }}>{pi + 1}</div>
+                      {pi < good.processes.length - 1 && (
+                        <div style={{ width: 2, flex: 1, background: `${color}20`, marginTop: 4 }} />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color, marginBottom: 3 }}>{p.step}</div>
+                      <div style={{ fontSize: 11, color: "#D1D5E0", lineHeight: 1.6, marginBottom: 4 }}>{p.desc}</div>
+                      <div style={{ fontSize: 10, color: "#8B8FA3", marginBottom: 2 }}>
+                        <span style={{ color: "#6B7280" }}>主要プレイヤー: </span>{p.players}
+                      </div>
+                      <div style={{ fontSize: 10, marginBottom: 0 }}>
+                        <span style={{ color: "#6B7280" }}>日本の立ち位置: </span>
+                        <span style={{ color: p.japanRole.includes("★") ? "#00E5CC" : "#8B8FA3" }}>{p.japanRole}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Sources */}
+                <div style={{
+                  marginTop: 14, paddingTop: 10,
+                  borderTop: `1px solid ${color}15`,
+                  fontSize: 9, color: "#4A4E63", fontStyle: "italic", lineHeight: 1.6,
+                }}>
+                  出所: {good.sources}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Summary Note */}
+        <div style={{
+          marginTop: 24, padding: 16, borderRadius: 8,
+          background: "#111118", border: "1px solid #252530",
+          fontSize: 10, color: "#6B7280", lineHeight: 1.7,
+        }}>
+          <div style={{ fontWeight: 700, color: "#8B8FA3", marginBottom: 6 }}>主要出所一覧</div>
+          <div style={{ columns: "2 280px", columnGap: 20 }}>
+            <div>• METI「日本のエネルギー2024」</div>
+            <div>• EIA "Refining Crude Oil", "Japan Country Analysis" (2024)</div>
+            <div>• DOE "LNG Value Chain Fact Sheet"</div>
+            <div>• IEA Global Critical Minerals Outlook 2025</div>
+            <div>• USGS Mineral Commodity Summaries 2024</div>
+            <div>• Britannica "Rare-earth element Processing"</div>
+            <div>• CSIS "Developing REE Processing Hubs" (2025)</div>
+            <div>• CSIS "Friendshoring LIB Supply Chain" (2024)</div>
+            <div>• RMI "EV Battery Supply Chain" (2023)</div>
+            <div>• ASML "Six Steps in Semiconductor Manufacturing" (2023)</div>
+            <div>• Brookings "Renaissance of Japanese Semiconductor Industry" (2024)</div>
+            <div>• ITA/U.S. Dept. of Commerce "Japan-Semiconductors" (2024)</div>
+            <div>• AMRO Annual Consultation Report Japan 2024（半導体輸入の台湾シェア等マクロ統計のみ）</div>
+            <div>• SEAJ Statistics (2024)</div>
+            <div>• Renesas "Semiconductor Manufacturing Process" (2025)</div>
+            <div>• 防衛省 令和6/7年度予算概要</div>
+            <div>• 防衛白書2024</div>
+            <div>• SIPRI Military Expenditure 2024</div>
+            <div>• ICIS Naphtha/Ethylene (2025), JPCA統計</div>
+            <div>• C&EN "Japan's petrochemical industry" (2024)</div>
+            <div>• USGS Mineral Commodity Summaries 2024 (タングステン含む全鉱物)</div>
+            <div>• WNA "Nuclear Fuel Cycle"</div>
+            <div>• MOFCOM 各輸出規制公告 (2024-2025)</div>
+            <div>• ATLA/防衛省各年度予算概要</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

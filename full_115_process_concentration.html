@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>26財×全116工程 市場規模・プレイヤー・寡占度</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const C = { EH: "#FF4757", H: "#FF7A3D", M: "#3B82F6", L: "#00E5CC" };
+const hhiC = (h) => h === "EH" ? C.EH : h === "H" ? C.H : h === "M" ? C.M : C.L;
+const hhiL = (h) => h === "EH" ? "極高(>5000)" : h === "H" ? "高(2500-5000)" : h === "M" ? "中(1500-2500)" : "低(<1500)";
+
+const goods = [
+  // ===== エネルギー(4) =====
+  { sector:"エネルギー", sc:"#FF7A3D", name:"原油", steps:[
+    { s:"探鉱・掘削", mkt:"$2.1T(上流E&P)", top:"Saudi Aramco(13%),Rosneft(6%),ExxonMobil(4%)", hhi:"L", note:"NOCが世界の53%。上位10社で30%", jp:"INPEX権益参加のみ", src:"IEA WEO 2024; Statista" },
+    { s:"パイプライン/タンカー輸送", mkt:"$200B(タンカー)", top:"Frontline,Euronav,DHT Holdings", hhi:"L", note:"VLCC市場は分散的。日本船社も大手", jp:"商船三井/日本郵船が大手", src:"Clarksons Research 2024" },
+    { s:"常圧蒸留(CDU)", mkt:"$1.8T(精製全体)", top:"Sinopec(5.9Mbpd),Aramco(4.1M),ExxonMobil(4.6M)", hhi:"L", note:"NOC53%。上位5社で~20%", jp:"ENEOS(1.6Mbpd)世界11位級", src:"Precedence Research 2024; Mordor Intelligence" },
+    { s:"接触分解(FCC)/水素化分解", mkt:"上記に含む", top:"設備:Honeywell UOP,Axens(仏),KBR", hhi:"H", note:"FCC触媒技術はUOP/Axens/BASFの3社寡占", jp:"出光/ENEOS等が国内運用", src:"IHS Markit 2024" },
+    { s:"脱硫・ブレンド・出荷", mkt:"上記に含む", top:"各精製会社が統合実施", hhi:"L", note:"精製プロセスの一部", jp:"国内精製所で実施", src:"EIA Refining Process" },
+  ]},
+  { sector:"エネルギー", sc:"#FF7A3D", name:"LNG", steps:[
+    { s:"ガス田採掘・集荷", mkt:"$300B+(ガス上流)", top:"Gazprom,QatarEnergy,ExxonMobil,Shell", hhi:"M", note:"カタール+豪+米で生産の55%", jp:"INPEX(イクシス等)権益参加", src:"IEA Gas Market Report 2024; IGU" },
+    { s:"前処理(酸ガス除去/脱水)", mkt:"$10B(ガス処理装置)", top:"Air Liquide,Linde,Honeywell UOP", hhi:"M", note:"アミン吸収技術は標準化", jp:"千代田化工がEPC", src:"Grand View Research 2024" },
+    { s:"液化(LNG Train)", mkt:"$120B+(液化容量)", top:"QatarEnergy(22%容量),Shell,TotalEnergies,Chevron", hhi:"M", note:"液化技術:APCI(C3-MR),Linde,千代田(SPB)", jp:"千代田化工SPB技術。EPC実績多数", src:"IGU World LNG Report 2024" },
+    { s:"LNG船輸送", mkt:"$140B(LNG船市場)", top:"MOL(97隻首位),NYK,Nakilat(カタール),Seapeak", hhi:"M", note:"日本3社(MOL/NYK/KLine)で世界の30%超", jp:"★MOL/NYK/KLineで30%超。世界最大級", src:"Clarksons Research 2024; GIIGNL Annual Report; MOL/NYK/KLine各社IR" },
+    { s:"受入・再ガス化", mkt:"$40B+(受入設備)", top:"日本(37基地),韓国,中国,欧州(FSRU増加)", hhi:"L", note:"各国に分散。FSRUが新興", jp:"日本は37基地で世界最大受入能力", src:"GIIGNL 2024" },
+  ]},
+  { sector:"エネルギー", sc:"#FF7A3D", name:"石炭", steps:[
+    { s:"露天/坑内採掘", mkt:"$900B+(石炭市場)", top:"Coal India(8%),Glencore(4%),BHP(3%)", hhi:"L", note:"中国52%生産。輸出は豪+インドネシア55%", jp:"国内炭鉱ほぼ閉山", src:"IEA Coal 2024; USGS" },
+    { s:"選炭・品位調整", mkt:"上記に含む", top:"産炭国で実施(各種機器メーカー)", hhi:"L", note:"", jp:"—", src:"" },
+    { s:"バルク輸送", mkt:"$120B(乾バルク船)", top:"Star Bulk,Golden Ocean,日本郵船,商船三井", hhi:"L", note:"ケープサイズ市場は分散", jp:"日本船社がバルク輸送", src:"Clarksons Research 2024" },
+    { s:"火力発電/コークス炉", mkt:"発電:¥4兆,製鉄:¥20兆", top:"JERA,J-POWER,日本製鉄,JFE", hhi:"M", note:"国内発電は寡占的(JERA最大)", jp:"JERA/J-POWER/日本製鉄等", src:"METI電力調査統計; 日本鉄鋼連盟" },
+  ]},
+  { sector:"エネルギー", sc:"#FF7A3D", name:"ウラン", steps:[
+    { s:"採掘(露天/ISL)", mkt:"$8B(ウラン市場)", top:"Kazatomprom(カザフ43%),Cameco(加15%),Orano(仏7%)", hhi:"H", note:"カザフ+加+豪で70%", jp:"国内鉱山なし", src:"WNA Nuclear Fuel Report 2023" },
+    { s:"精錬(イエローケーキU₃O₈)", mkt:"上記に含む", top:"産出国で実施", hhi:"H", note:"", jp:"—", src:"WNA" },
+    { s:"転換(UF₆)", mkt:"$2B", top:"Cameco,Orano,ConverDyn(米),Rosatom", hhi:"H", note:"4社で世界のほぼ全量", jp:"—", src:"UxC; WNA" },
+    { s:"濃縮(遠心分離)", mkt:"$6B(SWU市場)", top:"Rosatom/TVEL(46%),Urenco(29%),Orano(12%),CNNC(10%)", hhi:"EH", note:"世界SWU市場でロシア46%。ただし日本はOrano40-50%/Urenco30-40%/JNFL2-5%で調達。Rosatomへの依存は0〜微量(SPF/IINA)", jp:"JNFL六ケ所(微量)。日本の濃縮はOrano/Urenco中心", src:"WNA 2023; UxC" },
+    { s:"燃料加工(ペレット/集合体)", mkt:"$3B", top:"Framatome(仏),Westinghouse(米/スウェーデン),TVEL(露),GNF(米日)", hhi:"H", note:"4社寡占。炉型ごとに供給元限定", jp:"三菱原子燃料,GNF-J(日立GE)", src:"WNA; JAIF" },
+    { s:"原子力発電運転", mkt:"¥1兆+(国内)", top:"関電,九電,四電,東電等", hhi:"M", note:"国内再稼働12基(2024年)", jp:"再稼働進行中", src:"JAIF; METI" },
+  ]},
+  // ===== 石化(3) =====
+  { sector:"石化", sc:"#E91E90", name:"ナフサ", steps:[
+    { s:"原油蒸留からの留出", mkt:"$400B(ナフサ全体)", top:"中東精製所,ロシア精製所,国内精製所", hhi:"L", note:"ナフサは原油精製の中間留分", jp:"ENEOS/出光等", src:"ICIS; Argus Media" },
+    { s:"輸送・調達", mkt:"アジア8,660万t(2025)", top:"UAE30.4%/クウェート21.6%/カタール15.4%/サウジ3%(中東計73.6%→全てホルムズ通過),東南アジア,韓国等", hhi:"EH", note:"石化用ナフサの85%が輸入依存。うち73.6%が中東(全てホルムズ通過)。国別HHIは分散するが地理的チョークポイントに集中", jp:"85%輸入依存。商社経由", src:"JPCA; 財務省貿易統計CY2024" },
+    { s:"前処理(脱硫)", mkt:"上記に含む", top:"石化コンビナート内", hhi:"—", note:"", jp:"国内処理", src:"" },
+    { s:"スチームクラッキング", mkt:"$350B+(エチレン世界市場)", top:"Sinopec,SABIC,Dow,三井化学", hhi:"L", note:"世界220基+。中国が能力35%", jp:"国内12基(640万t/年)。稼働率70%以下", src:"SunSirs 2025; JPCA" },
+  ]},
+  { sector:"石化", sc:"#E91E90", name:"エチレン", steps:[
+    { s:"スチームクラッキング(分解)", mkt:"$350B(エチレン)", top:"Sinopec,SABIC,Dow,ExxonMobil", hhi:"L", note:"中国が能力62百万t(世界最大)", jp:"国内12基(上記)", src:"JPCA; SunSirs 2025" },
+    { s:"急冷・深冷分離", mkt:"上記に含む", top:"クラッカー統合(分離装置:Linde,Air Liquide)", hhi:"M", note:"深冷分離装置メーカーは寡占的", jp:"国内設備あり", src:"IHS Markit" },
+    { s:"重合(PE製造)", mkt:"$130B(PE)", top:"Dow(14%),ExxonMobil(10%),SABIC(8%),LyondellBasell(7%)", hhi:"L", note:"上位5社で35%", jp:"三井化学,日本ポリエチレン", src:"Grand View Research 2024" },
+    { s:"誘導品(EG/VCM/SM)", mkt:"$200B+(誘導品合計)", top:"SABIC,Sinopec,Shell,BASF", hhi:"L", note:"各誘導品で異なるプレイヤー", jp:"三菱ケミカル,信越化学,東ソー等", src:"JPCA; IHS Markit" },
+  ]},
+  { sector:"石化", sc:"#E91E90", name:"プロピレン/BTX", steps:[
+    { s:"クラッカー副産物/FCC由来", mkt:"$120B(PP)", top:"LyondellBasell(12%),Sinopec(10%),Braskem(5%)", hhi:"L", note:"プロピレン源は分散的", jp:"国内クラッカー副生", src:"Fortune Business Insights 2024" },
+    { s:"分離精製(蒸留/抽出蒸留)", mkt:"上記に含む", top:"UOP/Axens技術ライセンス", hhi:"M", note:"技術ライセンスは寡占", jp:"国内コンビナート", src:"IHS Markit" },
+    { s:"PP重合", mkt:"$120B", top:"LyondellBasell,Sinopec,Braskem,Borealis", hhi:"L", note:"", jp:"三井化学,日本ポリプロ", src:"Fortune BI 2024" },
+    { s:"芳香族(BTX)抽出・誘導品", mkt:"$250B+(ベンゼン/PX等)", top:"ExxonMobil,BP,Sinopec,三菱ケミカル", hhi:"L", note:"PX→PTA→PET繊維/ボトル", jp:"三菱ケミカル,ENEOS等", src:"IHS Markit" },
+  ]},
+  // ===== レアメタル(7) =====
+  { sector:"レアメタル", sc:"#00E5CC", name:"レアアース", steps:[
+    { s:"採掘", mkt:"$5B(鉱石)", top:"中国(60%),ミャンマー(12%),豪(6%),米MP Materials(3%)", hhi:"EH", note:"中国60%採掘。イオン吸着鉱は中国+ミャンマー", jp:"国内なし。南鳥島深海泥研究中", src:"USGS MCS 2024; IEA GCMO 2025" },
+    { s:"選鉱(磁選/浮選)", mkt:"上記に含む", top:"採掘国で実施", hhi:"EH", note:"", jp:"—", src:"EPA Rare Earths Profile" },
+    { s:"酸/アルカリ分解", mkt:"$8B(酸化物)", top:"中国(85-90%),Lynas/マレーシア(5%)", hhi:"EH", note:"中国85-90%独占", jp:"—", src:"IEA GCMO 2025; CSIS 2025" },
+    { s:"溶媒抽出分離", mkt:"上記に含む", top:"中国(85-90%),Lynas(豪/マレーシア唯一の大規模)", hhi:"EH", note:"数百段抽出槽が必要。技術+環境規制障壁", jp:"昭和電工等に微量能力", src:"Britannica REE; CSIS 2025" },
+    { s:"金属還元(フッ化物→金属)", mkt:"$3B", top:"中国主体。少量:Less Common Metals(英)", hhi:"EH", note:"", jp:"住友金属鉱山に一部能力", src:"USGS; Ames Lab" },
+    { s:"NdFeB磁石製造", mkt:"$25B", top:"中国(94%生産),信越化学,TDK,日立金属", hhi:"EH", note:"中国94%生産。日本は高性能品で技術先行", jp:"★信越化学/TDKが高性能品", src:"Adamas Intelligence; IEA GCMO 2025" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"リチウム", steps:[
+    { s:"硬岩鉱採掘(スポジュメン)", mkt:"$22B(Li全体)", top:"Pilbara(豪),Greenbushes/Tianqi-IGO(豪),Arcadium", hhi:"M", note:"豪が世界のLi鉱石の47%", jp:"国内資源なし", src:"S&P Global 2024; USGS MCS 2024" },
+    { s:"鹵水採取(塩湖蒸発)", mkt:"上記に含む", top:"SQM(チリ),Albemarle(チリ),Livent(アルゼンチン)", hhi:"M", note:"チリ+アルゼンチンで鹵水の65%", jp:"—", src:"USGS MCS 2024" },
+    { s:"精製(Li₂CO₃/LiOH)", mkt:"$15B", top:"中国(56%精製),チリ(25%),豪(新規)", hhi:"H", note:"中国56%精製。豪鉱石→中国精製の構造", jp:"—", src:"IEA GCMO 2025" },
+    { s:"正極材前駆体(pCAM)", mkt:"$30B", top:"中国(85%前駆体),住友金属鉱山,BASF,Umicore", hhi:"EH", note:"中国85%。住友金属鉱山がNCA前駆体で地位", jp:"住友金属鉱山", src:"IEA GCMO 2025; BloombergNEF" },
+    { s:"LiBセル製造", mkt:"$120B(LiB)", top:"CATL(37%),BYD(17%),LG(13%),Samsung SDI(5%),Panasonic(5%)", hhi:"H", note:"中国勢(CATL+BYD)で54%", jp:"Panasonic(テスラ向け)。国内シェア低下", src:"SNE Research 2024" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"コバルト", steps:[
+    { s:"銅/Ni副産物採掘", mkt:"$8B(Co全体)", top:"DRC(63%),インドネシア(5%),ロシア(4%)", hhi:"EH", note:"DRC63%。Glencore/CMOCが主要鉱山運営", jp:"—", src:"USGS MCS 2024; Cobalt Institute" },
+    { s:"湿式製錬/精製", mkt:"上記に含む", top:"中国(73%精製),Freeport Cobalt(フィンランド),住友金属鉱山", hhi:"EH", note:"中国73%精製。DRC採掘→中国精製の二重集中", jp:"住友金属鉱山が一部精錬", src:"IEA GCMO 2025; Cobalt Institute" },
+    { s:"電池材料/超合金", mkt:"$5B(電池用Co)", top:"Umicore,BASF,住友金属鉱山", hhi:"H", note:"", jp:"住友金属鉱山、日本製鋼所(超合金)", src:"BloombergNEF" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"ニッケル", steps:[
+    { s:"採掘(硫化鉱/ラテライト)", mkt:"$40B(Ni全体)", top:"インドネシア(55%生産),フィリピン(10%),ロシア/Nornickel(6%)", hhi:"EH", note:"インドネシア55%。中国資本多い", jp:"—", src:"USGS MCS 2024; IEA GCMO 2025" },
+    { s:"製錬(HPAL/電解)", mkt:"上記に含む", top:"インドネシア(71%精製Ni),中国(15%),日本(4%)", hhi:"EH", note:"インドネシア71%精製", jp:"住友金属鉱山(ポマラHPAL)", src:"IEA GCMO 2025" },
+    { s:"最終製品(SUS/電池用NiSO₄)", mkt:"SUS:$180B,電池Ni:$15B", top:"Tsingshan(中),Vale,住友金属鉱山", hhi:"M", note:"ステンレスは分散。電池用はやや集中", jp:"住友金属鉱山,日本冶金工業", src:"INSG; BloombergNEF" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"ガリウム", steps:[
+    { s:"ボーキサイト/亜鉛副産物抽出", mkt:"$300M(Ga全体)", top:"中国(約98%精製:610t中600t),日本(<1%),ロシア(<1%)", hhi:"EH", note:"中国が約98%(USGS: 全世界610t中600t)。事実上の一国モノポリー", jp:"DOWAに微量能力", src:"USGS MCS 2024 (生産量610t中国600t)" },
+    { s:"精製(4N-7N高純度化)", mkt:"上記に含む", top:"中国主体", hhi:"EH", note:"7N級は極めて限定的", jp:"高純度化技術あり", src:"USGS" },
+    { s:"化合物半導体(GaAs/GaN)", mkt:"$15B(化合物半導体)", top:"Wolfspeed(米SiC),住友電工(GaAs),Qorvo(米)", hhi:"H", note:"GaN/GaAsは数社に集中", jp:"★住友電工がGaAs/GaN基板で世界的地位", src:"Yole 2024" },
+    { s:"デバイス(LED/5G/レーダー)", mkt:"LED:$30B,5G RF:$20B", top:"日亜化学(LED),Skyworks/Qorvo(RF),三菱電機(レーダー)", hhi:"H", note:"用途ごとに寡占構造", jp:"★日亜化学がLED世界首位級", src:"Strategies Unlimited; Yole" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"ゲルマニウム", steps:[
+    { s:"亜鉛精錬副産物", mkt:"$200M(Ge全体)", top:"中国(約86%:210t中180t),Umicore(ベルギー~10%),Teck(加~5%)", hhi:"EH", note:"中国が約86%(USGS: 全世界210t中180t)。2024年12月輸出規制発動", jp:"微量回収のみ", src:"USGS MCS 2024 (生産量210t中国180t); MOFCOM No.46" },
+    { s:"GeCl₄蒸留→Ge金属精製", mkt:"上記に含む", top:"中国,Umicore", hhi:"EH", note:"", jp:"—", src:"USGS" },
+    { s:"光学/半導体応用(IR/光ファイバ)", mkt:"IR光学:$3B,光ファイバ:$10B", top:"Coherent(米),Umicore,古河電工", hhi:"H", note:"赤外線光学は軍需直結(暗視装置)", jp:"古河電工(光ファイバ)", src:"Yole; 矢野経済研究所" },
+  ]},
+  { sector:"レアメタル", sc:"#00E5CC", name:"タングステン", steps:[
+    { s:"採掘", mkt:"$5B(W全体)", top:"中国(81.5%),ロシア(4%),ベトナム(3%)", hhi:"EH", note:"中国81.5%。2025年輸出規制対象", jp:"国内鉱山なし", src:"USGS MCS 2024" },
+    { s:"精錬(APT→WO₃→W金属)", mkt:"上記に含む", top:"中国(86%精製),H.C.Starck(独),Global Tungsten(墺)", hhi:"EH", note:"中国86%精製", jp:"—", src:"USGS MCS 2024" },
+    { s:"炭化タングステン(WC)焼結", mkt:"$20B(超硬工具)", top:"Sandvik(15%),Kennametal(8%),三菱マテリアル(7%),住友電工(6%)", hhi:"M", note:"上位5社で40%", jp:"★三菱マテリアル/住友電工が大手", src:"日本工具工業会; Grand View Research" },
+    { s:"最終製品(工具/半導体/軍需)", mkt:"上記＋半導体W配線", top:"同上+東京タングステン", hhi:"M", note:"半導体Wターゲットは少数メーカー", jp:"東京タングステン等", src:"" },
+  ]},
+  // ===== 半導体(6) =====
+  { sector:"半導体", sc:"#3B82F6", name:"シリコンウェハ", steps:[
+    { s:"多結晶Si精製", mkt:"$10B(ポリSi)", top:"Wacker(独25%),通威(中20%),GCL(中15%),OCI(韓)",hhi:"H",note:"太陽電池向けは中国勢拡大",jp:"トクヤマ(半導体用高純度に強み)", src:"Bernreuter Research 2024" },
+    { s:"単結晶引上(CZ法)", mkt:"$14B(Si wafer)", top:"信越化学(30%),SUMCO(23%),Siltronic(独13%),SK Siltron(韓10%)", hhi:"H", note:"★信越+SUMCO=53%。日独4社で87%", jp:"★日本が53%。最大の戦略資産", src:"SEMI SMG 2024; Brookings 2024" },
+    { s:"切断・研磨(CMP)", mkt:"上記に含む", top:"同上+CMP装置:荏原(日),Applied Materials", hhi:"H", note:"", jp:"荏原がCMP装置", src:"SEMI" },
+    { s:"エピタキシャル成長", mkt:"$3B(エピウェハ)", top:"信越,SUMCO,IQE(英:化合物エピ)", hhi:"H", note:"", jp:"信越/SUMCO", src:"Yole 2024" },
+  ]},
+  { sector:"半導体", sc:"#3B82F6", name:"フォトレジスト", steps:[
+    { s:"樹脂/PAG合成", mkt:"$5B(レジスト全体)", top:"JSR(28%),東京応化(22%),信越化学(15%),住友化学(12%)", hhi:"H", note:"★日本4社で87-90%", jp:"★日本が87-90%独占", src:"Brookings 2024; Yole Développement推計" },
+    { s:"配合・精密濾過(ppq管理)", mkt:"上記に含む", top:"同上+Fujifilm Electronics Materials", hhi:"H", note:"金属不純物ppq(10⁻¹⁵)管理は超高度技術", jp:"★超高純度化学が強み", src:"Brookings 2024" },
+    { s:"EUV用レジスト開発", mkt:"$1B+(急成長)", top:"JSR/INPRIA,東京応化,信越化学", hhi:"EH", note:"MOR(メタルオキサイドレジスト)が次世代", jp:"★最前線", src:"ASML; JSR IR" },
+    { s:"ファブへ供給・品質認定", mkt:"—", top:"TSMC/Samsung/Intelへ直接供給", hhi:"—", note:"品質認定に数年", jp:"グローバル供給", src:"" },
+  ]},
+  { sector:"半導体", sc:"#3B82F6", name:"半導体製造装置", steps:[
+    { s:"コーター/デベロッパー", mkt:"$3B", top:"TEL(70%),SCREEN(18%)", hhi:"EH", note:"★TEL+SCREEN=88%。日本独占", jp:"★日本88%独占", src:"Brookings 2024; ITA 2024" },
+    { s:"エッチング装置", mkt:"$18B", top:"Lam Research(45%),TEL(25%),AMAT(20%)", hhi:"H", note:"3社で90%", jp:"TEL25%", src:"TechInsights 2024" },
+    { s:"成膜装置(CVD/PVD/ALD)", mkt:"$20B", top:"AMAT(40%),TEL(20%),Lam(15%)", hhi:"H", note:"3社で75%", jp:"TEL20%", src:"TechInsights 2024" },
+    { s:"洗浄装置", mkt:"$5B", top:"SCREEN(35%),TEL(30%),Lam(15%)", hhi:"H", note:"日本2社で65%", jp:"★SCREEN/TELで65%", src:"Brookings 2024" },
+    { s:"検査/計測", mkt:"$10B", top:"KLA(55%),AMAT(15%),日立ハイテク(10%),Lasertec(EUVマスク)", hhi:"EH", note:"KLA寡占。Lasertecは唯一のEUVマスク検査", jp:"日立ハイテク/Lasertec", src:"TechInsights 2024" },
+    { s:"テスター(ATE)", mkt:"$6B", top:"Advantest(52%),Teradyne(38%)", hhi:"EH", note:"★2社で90%。Advantest首位", jp:"★Advantest世界首位52%", src:"Advantest IR; TechInsights" },
+  ]},
+  { sector:"半導体", sc:"#3B82F6", name:"ロジックIC", steps:[
+    { s:"EDA(設計ソフト)", mkt:"$16B", top:"Synopsys(32%),Cadence(28%),Siemens EDA(12%)", hhi:"H", note:"米2社で60%。ゲートキーパー", jp:"完全依存。国産EDAなし", src:"ESD Alliance 2024" },
+    { s:"マスク(レティクル)製造", mkt:"$6B", top:"大日本印刷(DNP),凸版,Photronics(米)", hhi:"H", note:"日本2社で~30%。EUVマスクは超高難度", jp:"DNP/凸版が世界の30%", src:"SEMI; TechInsights" },
+    { s:"ファウンドリ(前工程)", mkt:"$148B", top:"TSMC(67.6%:全体),Samsung(7.7%),SMIC(6%),UMC(4.7%)", hhi:"EH", note:"★TSMC1社で67.6%(全ノード)。先端7nm以下ではTSMC~90%独占", jp:"Rapidus(2nm挑戦),JASM(TSMC熊本)", src:"TrendForce Q1 2025" },
+    { s:"OSAT(後工程)", mkt:"$45B", top:"ASE(27%),Amkor(15%),JCET(10%)", hhi:"M", note:"台湾+中国55%", jp:"国内OSAT脆弱", src:"TrendForce 2024; Yole 2024" },
+    { s:"先端パッケージング(CoWoS)", mkt:"$8B(急成長)", top:"TSMC(60%+),Samsung,Intel", hhi:"EH", note:"TSMC CoWoSがAI需要独占", jp:"★味の素ABFが必須材料", src:"TSMC IR; Yole 2024" },
+  ]},
+  { sector:"半導体", sc:"#3B82F6", name:"メモリ", steps:[
+    { s:"NAND Flash製造", mkt:"$65B(NAND)", top:"Samsung(33%),SK Hynix/Solidigm(22%),Kioxia/WD(20%),Micron(13%)", hhi:"H", note:"上位4社で88%", jp:"Kioxia/WD JV(四日市/北上)", src:"TrendForce 2024" },
+    { s:"DRAM製造", mkt:"$90B(DRAM)", top:"Samsung(40%),SK Hynix(35%),Micron(25%)", hhi:"EH", note:"3社で100%の事実上の寡占", jp:"Micron広島工場", src:"TrendForce 2024" },
+    { s:"HBM(高帯域メモリ)", mkt:"$20B+(2024,急成長)", top:"SK Hynix(53%),Samsung(40%),Micron(7%)", hhi:"EH", note:"SK Hynix独走。AI/GPU向け", jp:"Micronが広島でHBM検討", src:"TrendForce; SK Hynix IR" },
+    { s:"メモリテスト", mkt:"$2B(テスター市場の一部)", top:"Advantest(60%+),Teradyne", hhi:"EH", note:"Advantest首位", jp:"★Advantest", src:"Advantest IR" },
+  ]},
+  { sector:"半導体", sc:"#3B82F6", name:"EUVリソグラフィ", steps:[
+    { s:"EUV光源(Snプラズマ)", mkt:"上記に含む", top:"Trumpf(独:CO₂レーザー独占)", hhi:"EH", note:"Trumpf1社独占", jp:"ギガフォトン(開発参画)", src:"ASML IR" },
+    { s:"反射光学系(Mo/Siミラー)", mkt:"—", top:"Zeiss(独:100%独占)", hhi:"EH", note:"Zeiss1社独占。ピコメートル精度", jp:"—", src:"ASML IR; Brookings" },
+    { s:"EUV露光装置統合", mkt:"$10B+", top:"ASML(100%)", hhi:"EH", note:"★1社100%独占。1台$150-350M", jp:"部品供給のみ(浜松ホトニクス等)", src:"ASML IR 2024" },
+    { s:"EUVペリクル/マスクブランクス", mkt:"$500M", top:"AGC(日:ペリクル),HOYA(日:マスクブランクス)", hhi:"EH", note:"★AGC/HOYAが世界をほぼ独占", jp:"★AGC/HOYAが独占的供給", src:"SEMI; ASML" },
+  ]},
+  // ===== 軍需(6) =====
+  { sector:"軍需", sc:"#FF4757", name:"戦闘機(F-35/GCAP)", steps:[
+    { s:"機体設計・主要構造", mkt:"~$12B/年(年間調達。ライフサイクル総費用$1.7T+)", top:"Lockheed Martin(F-35独占),BAE(後部胴体)", hhi:"EH", note:"第5世代はLM独占(西側)", jp:"FACO組立のみ。設計参加なし", src:"GAO F-35 Report 2024; LM公式" },
+    { s:"エンジン(F135)", mkt:"$8B(F135)", top:"Pratt & Whitney(100%独占)", hhi:"EH", note:"F-35用は単一供給元", jp:"IHIが部品ライセンス生産", src:"P&W; Jane's 2020" },
+    { s:"AESA レーダー", mkt:"$5B(戦闘機レーダー)", top:"Northrop Grumman(AN/APG-81),Raytheon(AN/APG-82)", hhi:"EH", note:"米2社寡占", jp:"三菱電機(国産AESAはGCAP向け)", src:"NG; Jane's" },
+    { s:"ミッションシステム/ソフトウェア", mkt:"—", top:"Lockheed Martin(F-35ソフト800万行)", hhi:"EH", note:"日本はソースコードアクセスなし", jp:"三菱電機(ライセンス部品のみ)", src:"The Diplomat 2017; GAO" },
+    { s:"FACO組立/MRO&U", mkt:"$2B(日本FACO)", top:"MHI(名古屋),IHI(エンジンMRO)", hhi:"—", note:"日本は北アジアMRO拠点", jp:"MHI/IHI", src:"F-35.com Japan; Jane's 2020" },
+  ]},
+  { sector:"軍需", sc:"#FF4757", name:"SM-3 Block IIA", steps:[
+    { s:"1段目ブースター", mkt:"$8B(BMD迎撃体全体)", top:"Aerojet Rocketdyne(米:独占)", hhi:"EH", note:"", jp:"—", src:"GlobalSecurity; CSIS Missile Threat" },
+    { s:"2/3段目モーター", mkt:"上記に含む", top:"三菱重工(日:主担当)", hhi:"—", note:"★日本が2段目/3段目を開発・製造", jp:"★MHI主担当", src:"CSIS Missile Threat 2023; The Diplomat 2019" },
+    { s:"ノーズコーン", mkt:"上記に含む", top:"三菱重工(日:主担当)", hhi:"—", note:"★1999年からの共同研究成果", jp:"★MHI主担当", src:"GlobalSecurity SM-3 Japan; Wikipedia" },
+    { s:"操舵制御/ステージング", mkt:"上記に含む", top:"三菱重工(日)", hhi:"—", note:"★日本担当", jp:"★MHI", src:"The Diplomat 2019" },
+    { s:"キルビークル(シーカー+DACS)", mkt:"上記に含む", top:"Raytheon/RTX(米:独占)", hhi:"EH", note:"核心技術。赤外線シーカー+姿勢制御は米独占", jp:"—(アクセスなし)", src:"CSIS Missile Threat 2023; Raytheon" },
+    { s:"全弾統合・量産", mkt:"$2B(年間調達)", top:"Raytheon(Tucson/Huntsville)", hhi:"EH", note:"日本製部品を米国に輸送→統合", jp:"—", src:"Naval Technology 2024; DSCA" },
+  ]},
+  { sector:"軍需", sc:"#FF4757", name:"ミサイル(Tomahawk/JASSM等)", steps:[
+    { s:"Tomahawk Block V設計/製造", mkt:"$2B+(年間)", top:"Raytheon/RTX(100%)", hhi:"EH", note:"完全FMS。補給は米国次第", jp:"護衛艦VLS改修のみ", src:"Raytheon; DSCA" },
+    { s:"JASSM-ER設計/製造", mkt:"$1.5B", top:"Lockheed Martin(Troy, AL)(100%)", hhi:"EH", note:"完全FMS", jp:"F-15J改修(搭載対応)", src:"LM; 防衛省" },
+    { s:"JSM(Joint Strike Missile)", mkt:"$500M", top:"Kongsberg(ノルウェー)(100%)", hhi:"EH", note:"F-35内部兵装庫対応の対艦/対地", jp:"購入のみ", src:"Kongsberg公式; 防衛省予算概要" },
+    { s:"12式地対艦改(国産)", mkt:"¥数千億(開発+量産)", top:"三菱重工/ATLA(100%国産)", hhi:"—", note:"数少ない国産スタンドオフ。射程1,000km+", jp:"★弾体/エンジン/シーカー国産", src:"ATLA; 防衛省中期防" },
+  ]},
+  { sector:"軍需", sc:"#FF4757", name:"護衛艦(イージス含)", steps:[
+    { s:"船体設計", mkt:"¥5,000億(防衛艦艇)", top:"JMU,MHI(長崎),KHI(神戸:潜水艦)", hhi:"H", note:"国内3社に限定", jp:"国内設計", src:"海自; Jane's" },
+    { s:"船体建造", mkt:"上記に含む", top:"JMU(横浜/磯子),MHI(長崎)", hhi:"H", note:"潜水艦はMHI/KHIの2社交互", jp:"★国内建造", src:"JMU/MHI/KHI IR" },
+    { s:"推進系(ガスタービン)", mkt:"$3B(艦艇GT)", top:"GE(LM2500),Rolls-Royce(MT30),IHI(ライセンス)", hhi:"H", note:"LM2500をIHIがライセンス生産", jp:"IHI(ライセンス生産)", src:"IHI Marine; Jane's" },
+    { s:"イージス戦闘システム", mkt:"$5B+", top:"Lockheed Martin(100%)", hhi:"EH", note:"世界唯一供給元。ブラックボックス", jp:"購入のみ", src:"LM; Wikipedia Aegis" },
+    { s:"Mk 41 VLS", mkt:"$2B+", top:"BAE Systems/LM(100%)", hhi:"EH", note:"西側標準。代替なし", jp:"購入のみ", src:"BAE Systems" },
+    { s:"ソナー/対潜装備(国産)", mkt:"¥数百億", top:"NEC,沖電気", hhi:"H", note:"★日本の対潜能力は世界トップクラス", jp:"★NEC/沖電気が国産供給", src:"NEC IR; Jane's" },
+  ]},
+  { sector:"軍需", sc:"#FF4757", name:"弾薬/火薬", steps:[
+    { s:"火薬原料(HMX/RDX等)", mkt:"$10B(世界弾薬)", top:"BAE Systems,Rheinmetall,General Dynamics,Nammo", hhi:"H", note:"西側は5社程度に集中", jp:"日本化薬、ダイキン工業", src:"SIPRI; Jane's" },
+    { s:"弾体/信管製造", mkt:"上記に含む", top:"Rheinmetall,Nexter(仏),ダイキン,日本工機", hhi:"H", note:"国内生産能力は限定的", jp:"ダイキン,日本工機(少量)", src:"防衛白書2024" },
+    { s:"備蓄/管理", mkt:"—", top:"防衛省/自衛隊", hhi:"—", note:"備蓄量不足が課題", jp:"継戦能力に課題", src:"防衛白書2024; 読売新聞" },
+  ]},
+  { sector:"軍需", sc:"#FF4757", name:"統合防空(IAMD)", steps:[
+    { s:"BMDレーダー(SPY-1/SPY-7)", mkt:"$3B(BMDレーダー)", top:"Lockheed Martin(SPY-7),Raytheon(SPY-6)", hhi:"EH", note:"米2社独占", jp:"購入+国内設置", src:"LM; Raytheon" },
+    { s:"PAC-3 MSE(終末段階)", mkt:"$4B(Patriot)", top:"Lockheed Martin(100%)", hhi:"EH", note:"完全FMS", jp:"購入・配備のみ", src:"LM PAC-3; MDA" },
+    { s:"SM-6(多用途迎撃)", mkt:"$3B", top:"Raytheon/RTX(100%)", hhi:"EH", note:"対空/BMD/対艦兼用", jp:"FMS購入", src:"Raytheon; USN" },
+    { s:"GPI(滑空段階迎撃:開発中)", mkt:"$1B+(開発費)", top:"MDA+ATLA(日米共同開発)", hhi:"—", note:"極超音速対処。開発初期段階", jp:"共同開発参画", src:"MDA; 防衛省" },
+    { s:"JADGE(指揮統制)", mkt:"¥数百億", top:"NEC,三菱電機", hhi:"H", note:"★国産C2システム", jp:"★NEC/三菱電機が国産", src:"防衛省; NEC" },
+  ]},
+];
+
+const sectorNames = [...new Set(goods.map(g => g.sector))];
+const sectorColors = Object.fromEntries(goods.map(g => [g.sector, g.sc]));
+
+function App() {
+  const [sec, setSec] = useState("半導体");
+  const [openGood, setOpenGood] = useState(null);
+  const filtered = goods.filter(g => g.sector === sec);
+  const color = sectorColors[sec];
+
+  const allSteps = filtered.flatMap(g => g.steps);
+  const ehCount = allSteps.filter(s => s.hhi === "EH").length;
+  const hCount = allSteps.filter(s => s.hhi === "H").length;
+  const total = allSteps.length;
+
+  return (
+    <div style={{ fontFamily:"'Poppins', 'Noto Sans JP', sans-serif", background:"#07070C", color:"#E5E5E5", minHeight:"100vh", padding:"16px 10px" }}>
+      
+      <div style={{ maxWidth:980, margin:"0 auto" }}>
+        <h1 style={{ fontSize:17, fontWeight:700, margin:"0 0 3px" }}>26財 × 全116工程 市場規模・プレイヤー・寡占度 完全版</h1>
+        <p style={{ fontSize:9, color:"#6B7280", margin:"0 0 4px" }}>HHI推計: EH=極高(&gt;5000) H=高(2500-5000) M=中 L=低。★=日本が強み。各行に出所記載。</p>
+        <p style={{ fontSize:8, color:"#4A4E63", margin:"0 0 12px", lineHeight:1.5, fontStyle:"italic" }}>
+          注記: 貿易統計の「FY2024」表記は、財務省速報値（CY2024暦年または直近12ヶ月推計）を便宜上FYと呼称している場合を含む。
+          レアメタルのシェア率はUSGS MCS 2024の生産量ベースで算出（Ga: 610t中600t≈98%, Ge: 210t中180t≈86%）。
+          出典はすべて公的機関・業界団体・主要市場調査会社の公開データに基づく。
+        </p>
+
+        <div style={{ display:"flex", gap:4, marginBottom:12, flexWrap:"wrap" }}>
+          {sectorNames.map(s => (
+            <button key={s} onClick={() => { setSec(s); setOpenGood(null); }} style={{
+              padding:"5px 10px", borderRadius:5, fontSize:10, cursor:"pointer",
+              border: sec===s ? `2px solid ${sectorColors[s]}` : "1px solid #2A2A35",
+              background: sec===s ? `${sectorColors[s]}18` : "#111118",
+              color: sec===s ? sectorColors[s] : "#8B8B9A", fontWeight: sec===s ? 700 : 400,
+            }}>{s}({goods.filter(g=>g.sector===s).length}財/{goods.filter(g=>g.sector===s).flatMap(g=>g.steps).length}工程)</button>
+          ))}
+        </div>
+
+        <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+          <div style={{ background:"#FF475710", border:"1px solid #FF475725", borderRadius:5, padding:"4px 8px" }}>
+            <span style={{ fontSize:9, color:"#8B8FA3" }}>極高寡占 </span><span style={{ fontSize:14, fontWeight:700, color:"#FF4757" }}>{ehCount}</span><span style={{ fontSize:9, color:"#6B7280" }}>/{total}</span>
+          </div>
+          <div style={{ background:"#FF7A3D10", border:"1px solid #FF7A3D25", borderRadius:5, padding:"4px 8px" }}>
+            <span style={{ fontSize:9, color:"#8B8FA3" }}>高寡占 </span><span style={{ fontSize:14, fontWeight:700, color:"#FF7A3D" }}>{hCount}</span><span style={{ fontSize:9, color:"#6B7280" }}>/{total}</span>
+          </div>
+        </div>
+
+        {filtered.map((good, gi) => {
+          const isOpen = openGood === gi;
+          const gEH = good.steps.filter(s => s.hhi === "EH").length;
+          return (
+            <div key={gi} style={{ marginBottom:6 }}>
+              <button onClick={() => setOpenGood(isOpen ? null : gi)} style={{
+                width:"100%", textAlign:"left", cursor:"pointer", padding:"8px 12px", borderRadius:6,
+                border: isOpen ? `2px solid ${color}` : "1px solid #1F1F2A", background: isOpen ? `${color}0C` : "#0E0E16",
+                display:"flex", justifyContent:"space-between", alignItems:"center",
+              }}>
+                <div>
+                  <span style={{ fontSize:13, fontWeight:600 }}>{good.name}</span>
+                  <span style={{ fontSize:9, color:"#6B7280", marginLeft:6 }}>{good.steps.length}工程</span>
+                  {gEH > 0 && <span style={{ fontSize:8, color:"#FF4757", marginLeft:6, fontWeight:700 }}>極高寡占×{gEH}</span>}
+                </div>
+                <span style={{ color, fontSize:12 }}>{isOpen?"▼":"▶"}</span>
+              </button>
+              {isOpen && (
+                <div style={{ background:"#0A0A12", border:`1px solid ${color}20`, borderTop:"none", borderRadius:"0 0 6px 6px", padding:10 }}>
+                  {good.steps.map((st, si) => (
+                    <div key={si} style={{
+                      padding:"7px 9px", marginBottom:4, borderRadius:5,
+                      background: st.hhi==="EH" ? "#FF475708" : st.hhi==="H" ? "#FF7A3D06" : "#0D0D14",
+                      border: `1px solid ${hhiC(st.hhi)}15`,
+                    }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6, marginBottom:3, flexWrap:"wrap" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <span style={{ width:6, height:6, borderRadius:"50%", background:hhiC(st.hhi), flexShrink:0 }} />
+                          <span style={{ fontSize:11, fontWeight:600 }}>{st.s}</span>
+                          <span style={{ fontSize:8, color:hhiC(st.hhi), fontWeight:700 }}>{hhiL(st.hhi)}</span>
+                        </div>
+                        <span style={{ fontSize:10, color, fontWeight:600, flexShrink:0 }}>{st.mkt}</span>
+                      </div>
+                      <div style={{ fontSize:9, color:"#C0C0D0", marginBottom:2 }}>Top: {st.top}</div>
+                      {st.note && <div style={{ fontSize:9, color:"#8B8FA3", marginBottom:2 }}>{st.note}</div>}
+                      <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:2 }}>
+                        <span style={{ fontSize:8, color: st.jp.includes("★") ? "#00E5CC" : "#6B7280" }}>日本: {st.jp}</span>
+                        {st.src && <span style={{ fontSize:7, color:"#3B3B50", fontStyle:"italic" }}>出所: {st.src}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

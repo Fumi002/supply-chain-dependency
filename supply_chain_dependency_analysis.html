@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本の安全保障 ─ 輸出入依存構造マップ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const sectors = [
+  {
+    id: "energy",
+    name: "エネルギー",
+    nameEn: "Energy",
+    color: "#FF7A3D",
+    goods: [
+      {
+        name: "原油",
+        nameEn: "Crude Oil",
+        stages: [
+          { stage: "採掘", value: "—", note: "国内生産ほぼゼロ" },
+          { stage: "輸入", value: "¥10.65兆", note: "FY2024, 232万bpd" },
+          { stage: "精製", value: "¥—", note: "国内3.3百万bpd能力" },
+          { stage: "消費/配送", value: "¥—", note: "第5位消費国" },
+        ],
+        dependency: { rate: "99.7%", mainSource: "中東95%（サウジ39%, UAE32%）", risk: "極高" },
+      },
+      {
+        name: "LNG",
+        nameEn: "LNG",
+        stages: [
+          { stage: "採掘/液化", value: "—", note: "海外権益のみ" },
+          { stage: "輸入", value: "¥6.2兆", note: "FY2024, 6,587万t" },
+          { stage: "再ガス化", value: "¥—", note: "国内37基地" },
+          { stage: "発電/配送", value: "¥—", note: "電力の約34%" },
+        ],
+        dependency: { rate: "97.8%", mainSource: "豪36%, マレーシア13%, 露8%", risk: "高" },
+      },
+      {
+        name: "石炭",
+        nameEn: "Coal",
+        stages: [
+          { stage: "採掘", value: "—", note: "国内ほぼゼロ" },
+          { stage: "輸入", value: "¥約3兆", note: "FY2024, 1.05億t" },
+          { stage: "発電/鉄鋼", value: "¥—", note: "電力の約30%" },
+          { stage: "最終消費", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "99.6%", mainSource: "豪66%, インドネシア13%", risk: "中高" },
+      },
+      {
+        name: "ウラン",
+        nameEn: "Uranium",
+        stages: [
+          { stage: "採掘", value: "—", note: "国内ゼロ" },
+          { stage: "濃縮/加工", value: "¥—", note: "一部国内能力" },
+          { stage: "原子力発電", value: "¥—", note: "再稼働進行中" },
+          { stage: "廃棄処理", value: "¥—", note: "六ケ所村等" },
+        ],
+        dependency: { rate: "100%", mainSource: "カザフ, 豪, カナダ", risk: "中" },
+      },
+    ],
+  },
+  {
+    id: "petrochem",
+    name: "石化",
+    nameEn: "Petrochemicals",
+    color: "#E91E90",
+    goods: [
+      {
+        name: "ナフサ",
+        nameEn: "Naphtha",
+        stages: [
+          { stage: "原油精製/国内留出", value: "¥—", note: "国内精製分（15%）" },
+          { stage: "輸送・調達", value: "¥約2兆", note: "石化用の85%が輸入。うち73.6%が中東(UAE30.4%/クウェート21.6%/カタール15.4%→全てホルムズ通過)" },
+          { stage: "スチームクラッキング", value: "¥—", note: "国内12基, 640万t/年能力" },
+          { stage: "基礎化学品", value: "¥—", note: "エチレン/プロピレン/BTX等(連産品)" },
+          { stage: "誘導品/最終製品", value: "¥—", note: "プラスチック/自動車部品/フォトレジスト原料等" },
+        ],
+        dependency: { rate: "約85%(輸入依存)", mainSource: "UAE30.4%/クウェート21.6%/カタール15.4%(中東計73.6%→全てホルムズ通過), 韓国/東南アジア等。国別HHIは分散するがチョークポイント集中度は極高(EH相当)", risk: "極高" },
+      },
+      {
+        name: "エチレン",
+        nameEn: "Ethylene",
+        stages: [
+          { stage: "原料（ナフサ）", value: "¥—", note: "ナフサクラッカー依存" },
+          { stage: "分解/生産", value: "¥約11.9B USD", note: "2024年市場規模" },
+          { stage: "重合（PE等）", value: "¥—", note: "ポリエチレン等" },
+          { stage: "最終製品", value: "¥—", note: "包装、自動車部品等" },
+        ],
+        dependency: { rate: "低（国内生産）", mainSource: "ただしナフサ原料は輸入依存", risk: "間接的高" },
+      },
+      {
+        name: "プロピレン・BTX",
+        nameEn: "Propylene/BTX",
+        stages: [
+          { stage: "原料", value: "¥—", note: "ナフサ副産物" },
+          { stage: "分離精製", value: "¥—", note: "" },
+          { stage: "誘導品", value: "¥—", note: "PP, スチレン等" },
+          { stage: "最終消費", value: "¥—", note: "繊維、電子材料等" },
+        ],
+        dependency: { rate: "間接的高", mainSource: "ナフサ経由で中東依存", risk: "高" },
+      },
+    ],
+  },
+  {
+    id: "raremetal",
+    name: "レアメタル/重要鉱物",
+    nameEn: "Rare Metals & Critical Minerals",
+    color: "#00E5CC",
+    goods: [
+      {
+        name: "レアアース(希土類)",
+        nameEn: "Rare Earth Elements",
+        stages: [
+          { stage: "採掘", value: "¥—", note: "国内ゼロ" },
+          { stage: "分離精製", value: "¥—", note: "中国が世界の85-90%" },
+          { stage: "磁石/材料加工", value: "¥—", note: "NdFeB磁石等" },
+          { stage: "最終製品", value: "¥—", note: "EV、風力、ロボット" },
+        ],
+        dependency: { rate: "100%（採掘）", mainSource: "中国65%, ベトナム, タイ", risk: "極高" },
+      },
+      {
+        name: "リチウム",
+        nameEn: "Lithium",
+        stages: [
+          { stage: "採掘/鹵水", value: "¥—", note: "チリ、豪が主" },
+          { stage: "精製（水酸化物）", value: "¥—", note: "中国が56%精製" },
+          { stage: "正極材製造", value: "¥—", note: "住友金属鉱山等" },
+          { stage: "バッテリー", value: "¥—", note: "EV, 蓄電池" },
+        ],
+        dependency: { rate: "100%", mainSource: "チリ, 豪（精製は中国経由多）", risk: "極高" },
+      },
+      {
+        name: "コバルト",
+        nameEn: "Cobalt",
+        stages: [
+          { stage: "採掘", value: "¥—", note: "DRC 63%" },
+          { stage: "精製", value: "¥—", note: "中国 73%精製" },
+          { stage: "正極材", value: "¥—", note: "" },
+          { stage: "最終製品", value: "¥—", note: "電池, 超合金" },
+        ],
+        dependency: { rate: "100%", mainSource: "DRC→中国精製→日本", risk: "極高" },
+      },
+      {
+        name: "ニッケル",
+        nameEn: "Nickel",
+        stages: [
+          { stage: "採掘", value: "¥—", note: "インドネシア等" },
+          { stage: "精錬", value: "¥—", note: "住友金属鉱山等国内能力あり" },
+          { stage: "合金/電池材", value: "¥—", note: "" },
+          { stage: "最終製品", value: "¥—", note: "SUS, 電池" },
+        ],
+        dependency: { rate: "高", mainSource: "インドネシア, フィリピン, 豪", risk: "中高" },
+      },
+      {
+        name: "ガリウム",
+        nameEn: "Gallium",
+        stages: [
+          { stage: "副産物抽出", value: "¥—", note: "ボーキサイト/亜鉛副産" },
+          { stage: "精製", value: "¥—", note: "中国約98%精製(USGS: 610t中600t)" },
+          { stage: "化合物半導体", value: "¥—", note: "GaAs, GaN" },
+          { stage: "最終製品", value: "¥—", note: "LED, 5G, レーダー" },
+        ],
+        dependency: { rate: "ほぼ100%", mainSource: "中国約98%(USGS MCS 2024)", risk: "極高（輸出規制発動済）" },
+      },
+      {
+        name: "ゲルマニウム",
+        nameEn: "Germanium",
+        stages: [
+          { stage: "副産物抽出", value: "¥—", note: "亜鉛精錬副産物" },
+          { stage: "精製", value: "¥—", note: "中国約86%精製(USGS: 210t中180t)" },
+          { stage: "光学/半導体", value: "¥—", note: "赤外線光学、光ファイバ" },
+          { stage: "最終製品", value: "¥—", note: "暗視装置、通信" },
+        ],
+        dependency: { rate: "ほぼ100%", mainSource: "中国約86%(USGS MCS 2024: 210t中180t)（輸出規制発動済）", risk: "極高" },
+      },
+      {
+        name: "タングステン",
+        nameEn: "Tungsten",
+        stages: [
+          { stage: "採掘", value: "¥—", note: "中国81.5%" },
+          { stage: "精製/炭化物", value: "¥—", note: "中国86%精製" },
+          { stage: "超硬工具/電極", value: "¥—", note: "" },
+          { stage: "最終製品", value: "¥—", note: "切削、半導体、軍需" },
+        ],
+        dependency: { rate: "ほぼ100%", mainSource: "中国86%（2025年輸出規制対象）", risk: "極高" },
+      },
+    ],
+  },
+  {
+    id: "semiconductor",
+    name: "半導体",
+    nameEn: "Semiconductors",
+    color: "#3B82F6",
+    goods: [
+      {
+        name: "シリコンウェハ",
+        nameEn: "Silicon Wafers",
+        stages: [
+          { stage: "多結晶Si精製", value: "¥—", note: "独Wacker等も" },
+          { stage: "単結晶引上/切断", value: "¥—", note: "信越+SUMCO=53%世界シェア" },
+          { stage: "ウェハ出荷", value: "¥$1.6B輸出", note: "2024年" },
+          { stage: "ファブ投入", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "低（日本が供給側）", mainSource: "日本が世界の53%供給", risk: "低（強み）" },
+      },
+      {
+        name: "フォトレジスト",
+        nameEn: "Photoresist",
+        stages: [
+          { stage: "化学原料", value: "¥—", note: "" },
+          { stage: "配合/製造", value: "¥—", note: "JSR, 東京応化等=90%シェア" },
+          { stage: "ファブへ供給", value: "¥—", note: "" },
+          { stage: "リソグラフィ工程", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "低（日本が供給側）", mainSource: "日本が世界の87-90%供給", risk: "低（強み）" },
+      },
+      {
+        name: "製造装置",
+        nameEn: "Equipment",
+        stages: [
+          { stage: "設計/開発", value: "¥—", note: "" },
+          { stage: "製造", value: "¥約$22.8B", note: "2023年国内市場" },
+          { stage: "輸出", value: "¥4,058億/月", note: "2024年11月" },
+          { stage: "ファブ導入", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "低（日本が供給側）", mainSource: "TEL, SCREEN等 コーター/デベロッパー88%", risk: "低（強み）" },
+      },
+      {
+        name: "ロジックIC（先端チップ）",
+        nameEn: "Advanced Logic Chips",
+        stages: [
+          { stage: "設計(EDA)", value: "¥—", note: "米Synopsys, Cadence独占" },
+          { stage: "前工程（ファウンドリ）", value: "¥—", note: "TSMC(台湾)60%のシェア" },
+          { stage: "後工程(OSAT)", value: "¥—", note: "台湾/中国/東南アジア" },
+          { stage: "最終製品", value: "¥—", note: "日本市場~$49.3B" },
+        ],
+        dependency: { rate: "台湾60%(輸入額ベース)", mainSource: "台湾（TSMC）が支配的。先端ロジック(7nm以下)に限ればTSMC依存はほぼ100%", risk: "極高（台湾有事リスク）" },
+      },
+      {
+        name: "メモリ（NAND/DRAM）",
+        nameEn: "Memory Chips",
+        stages: [
+          { stage: "設計", value: "¥—", note: "韓Samsung/SKH, 米Micron" },
+          { stage: "前工程", value: "¥—", note: "Kioxia（旧東芝）が国内唯一" },
+          { stage: "後工程", value: "¥—", note: "" },
+          { stage: "最終製品", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "中", mainSource: "韓国50%+, Kioxia国内あり", risk: "中" },
+      },
+      {
+        name: "EUVリソグラフィ",
+        nameEn: "EUV Lithography",
+        stages: [
+          { stage: "光源開発", value: "¥—", note: "" },
+          { stage: "装置製造", value: "¥—", note: "ASML（蘭）が100%独占" },
+          { stage: "ファブ導入", value: "¥—", note: "Rapidus向け導入予定" },
+          { stage: "—", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "100%", mainSource: "オランダASML（1社独占）", risk: "極高" },
+      },
+    ],
+  },
+  {
+    id: "defense",
+    name: "軍需/防衛",
+    nameEn: "Defense",
+    color: "#FF4757",
+    goods: [
+      {
+        name: "戦闘機",
+        nameEn: "Fighter Aircraft",
+        stages: [
+          { stage: "設計", value: "¥—", note: "GCAP（日英伊共同）" },
+          { stage: "製造", value: "¥—", note: "F-35:米LM→三菱重工FACO" },
+          { stage: "配備", value: "¥—", note: "F-35A/B 147機計画" },
+          { stage: "MRO", value: "¥—", note: "日本国内FACO" },
+        ],
+        dependency: { rate: "高", mainSource: "米国（F-35系統）", risk: "高" },
+      },
+      {
+        name: "ミサイル/誘導弾",
+        nameEn: "Missiles",
+        stages: [
+          { stage: "開発", value: "¥—", note: "12式改（国産）、Tomahawk（輸入）" },
+          { stage: "製造/調達", value: "¥9,390億", note: "FY2025スタンドオフ予算" },
+          { stage: "配備", value: "¥—", note: "JSM, JASSM-ER, PAC-3, SM-3等" },
+          { stage: "—", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "高", mainSource: "米(Tomahawk, PAC-3, SM-6), ノルウェー(JSM)", risk: "極高" },
+      },
+      {
+        name: "艦艇",
+        nameEn: "Naval Vessels",
+        stages: [
+          { stage: "設計", value: "¥—", note: "国内設計能力あり" },
+          { stage: "建造", value: "¥—", note: "JMU, MHI, KHI" },
+          { stage: "戦闘システム", value: "¥—", note: "イージスは米国製" },
+          { stage: "配備/MRO", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "船体:低 / システム:高", mainSource: "戦闘システムは米国依存", risk: "中高" },
+      },
+      {
+        name: "弾薬/火薬",
+        nameEn: "Ammunition",
+        stages: [
+          { stage: "原料調達", value: "¥—", note: "火薬原料は一部輸入" },
+          { stage: "製造", value: "¥—", note: "国内生産能力限定的" },
+          { stage: "備蓄", value: "¥—", note: "継戦能力に課題" },
+          { stage: "—", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "中", mainSource: "原料一部輸入、生産能力不足", risk: "高（継戦能力）" },
+      },
+      {
+        name: "無人機(UAV)",
+        nameEn: "Drones/UAV",
+        stages: [
+          { stage: "開発", value: "¥—", note: "国産開発遅延" },
+          { stage: "調達", value: "¥—", note: "MQ-9B（米）, V-BAT（米）" },
+          { stage: "配備", value: "¥—", note: "FY2026以降本格化" },
+          { stage: "—", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "極高", mainSource: "当面は輸入（米, トルコ, イスラエル）", risk: "極高" },
+      },
+      {
+        name: "統合防空ミサイル防衛",
+        nameEn: "IAMD",
+        stages: [
+          { stage: "開発", value: "¥—", note: "GPI日米共同開発" },
+          { stage: "調達", value: "¥8,780億", note: "FY2024予算" },
+          { stage: "配備", value: "¥—", note: "PAC-3, SM-3 IIA, SM-6" },
+          { stage: "—", value: "¥—", note: "" },
+        ],
+        dependency: { rate: "極高", mainSource: "米国（迎撃体は全て米国製/共同）", risk: "極高" },
+      },
+    ],
+  },
+];
+
+const summaryData = {
+  totalEnergyImport: "¥約28兆 ($187B)",
+  totalDefenseBudget: "¥9兆+ ($58B) FY2026",
+  semicon_market: "~$49.3B (2024)",
+  rareEarthImport: "$339.6M (2024)",
+  petrochemExport: "¥1.5兆 (2021)",
+};
+
+const riskLevelColor = (risk) => {
+  if (risk.includes("極高")) return "#FF4757";
+  if (risk.includes("高")) return "#FF7A3D";
+  if (risk.includes("中")) return "#3B82F6";
+  if (risk.includes("低")) return "#00E5CC";
+  return "#6B7280";
+};
+
+const riskLevelBg = (risk) => {
+  if (risk.includes("極高")) return "rgba(220,38,38,0.12)";
+  if (risk.includes("高")) return "rgba(245,158,11,0.12)";
+  if (risk.includes("中")) return "rgba(59,130,246,0.12)";
+  if (risk.includes("低")) return "rgba(16,185,129,0.12)";
+  return "rgba(107,114,128,0.1)";
+};
+
+function App() {
+  const [activeSector, setActiveSector] = useState("energy");
+  const [activeGood, setActiveGood] = useState(null);
+  const sector = sectors.find((s) => s.id === activeSector);
+
+  return (
+    <div style={{
+      fontFamily: "'Poppins', 'Poppins', 'Noto Sans JP', sans-serif",
+      background: "#0A0A0F",
+      color: "#E5E5E5",
+      minHeight: "100vh",
+      padding: "24px 16px",
+    }}>
+      
+
+      {/* Header */}
+      <div style={{ maxWidth: 1100, margin: "0 auto 32px" }}>
+        <h1 style={{
+          fontSize: 22, fontWeight: 700, letterSpacing: "0.02em",
+          background: "#0A0A14",
+          margin: "0 0 6px",
+        }}>
+          日本の安全保障 ─ 輸出入依存構造マップ
+        </h1>
+        <p style={{ fontSize: 13, color: "#8B8FA3", margin: 0, lineHeight: 1.6 }}>
+          エネルギー / 石化 / レアメタル / 半導体 / 軍需の各バリューチェーン × 財 × 工程 × 金額 × 依存先
+        </p>
+      </div>
+
+      {/* Key Figures Bar */}
+      <div style={{
+        maxWidth: 1100, margin: "0 auto 28px",
+        display: "flex", gap: 12, flexWrap: "wrap",
+      }}>
+        {[
+          { label: "エネルギー輸入総額", val: summaryData.totalEnergyImport, color: "#FF7A3D" },
+          { label: "防衛予算 FY2026", val: summaryData.totalDefenseBudget, color: "#FF4757" },
+          { label: "半導体市場規模", val: summaryData.semicon_market, color: "#3B82F6" },
+          { label: "レアアース輸入額", val: summaryData.rareEarthImport, color: "#00E5CC" },
+          { label: "石化製品輸出額", val: summaryData.petrochemExport, color: "#E91E90" },
+        ].map((d) => (
+          <div key={d.label} style={{
+            flex: "1 1 180px",
+            background: "#0A0A14",
+            border: `1px solid ${d.color}30`,
+            borderRadius: 8, padding: "10px 14px",
+          }}>
+            <div style={{ fontSize: 10, color: "#8B8FA3", marginBottom: 2 }}>{d.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: d.color }}>{d.val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Sector Tabs */}
+      <div style={{
+        maxWidth: 1100, margin: "0 auto 20px",
+        display: "flex", gap: 6, flexWrap: "wrap",
+      }}>
+        {sectors.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => { setActiveSector(s.id); setActiveGood(null); }}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: activeSector === s.id ? `2px solid ${s.color}` : "1px solid #333",
+              background: activeSector === s.id ? `${s.color}20` : "#16161D",
+              color: activeSector === s.id ? s.color : "#8B8FA3",
+              fontWeight: activeSector === s.id ? 700 : 400,
+              fontSize: 13,
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            {s.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        {/* Goods List */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 10, marginBottom: 20,
+        }}>
+          {sector.goods.map((g, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveGood(activeGood === i ? null : i)}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: activeGood === i ? `2px solid ${sector.color}` : "1px solid #2A2A35",
+                background: activeGood === i ? `${sector.color}15` : "#13131A",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.2s",
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#E5E5E5", marginBottom: 4 }}>
+                {g.name}
+              </div>
+              <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 6 }}>{g.nameEn}</div>
+              <div style={{
+                display: "inline-block",
+                padding: "2px 8px",
+                borderRadius: 4,
+                fontSize: 10,
+                fontWeight: 600,
+                color: riskLevelColor(g.dependency.risk),
+                background: riskLevelBg(g.dependency.risk),
+              }}>
+                リスク: {g.dependency.risk}
+              </div>
+              <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4 }}>
+                輸入依存度: {g.dependency.rate}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Detail Panel */}
+        {activeGood !== null && (
+          <div style={{
+            background: "#13131A",
+            border: `1px solid ${sector.color}40`,
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 24,
+          }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+              marginBottom: 16, flexWrap: "wrap", gap: 12,
+            }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: sector.color, margin: "0 0 4px" }}>
+                  {sector.goods[activeGood].name}
+                </h3>
+                <span style={{ fontSize: 12, color: "#6B7280" }}>{sector.goods[activeGood].nameEn}</span>
+              </div>
+              <div style={{
+                background: riskLevelBg(sector.goods[activeGood].dependency.risk),
+                border: `1px solid ${riskLevelColor(sector.goods[activeGood].dependency.risk)}40`,
+                borderRadius: 8, padding: "8px 14px",
+              }}>
+                <div style={{ fontSize: 10, color: "#8B8FA3" }}>主要供給元</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#E5E5E5", marginTop: 2 }}>
+                  {sector.goods[activeGood].dependency.mainSource}
+                </div>
+              </div>
+            </div>
+
+            {/* Value Chain Steps */}
+            <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 8 }}>
+              {sector.goods[activeGood].stages.filter(s => s.stage !== "—").map((st, j) => (
+                <div key={j} style={{ display: "flex", alignItems: "center", flex: "1 0 auto" }}>
+                  <div style={{
+                    background: `${sector.color}10`,
+                    border: `1px solid ${sector.color}30`,
+                    borderRadius: 8,
+                    padding: "12px 16px",
+                    minWidth: 140,
+                    position: "relative",
+                  }}>
+                    <div style={{
+                      fontSize: 9, color: sector.color, fontWeight: 700,
+                      textTransform: "uppercase", letterSpacing: "0.1em",
+                      marginBottom: 4,
+                    }}>
+                      工程 {j + 1}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#E5E5E5", marginBottom: 4 }}>
+                      {st.stage}
+                    </div>
+                    {st.value !== "¥—" && (
+                      <div style={{ fontSize: 14, fontWeight: 700, color: sector.color, marginBottom: 2 }}>
+                        {st.value}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: "#8B8FA3", lineHeight: 1.4 }}>
+                      {st.note}
+                    </div>
+                  </div>
+                  {j < sector.goods[activeGood].stages.filter(s => s.stage !== "—").length - 1 && (
+                    <div style={{
+                      color: sector.color, fontSize: 18, padding: "0 6px",
+                      opacity: 0.5, flexShrink: 0,
+                    }}>→</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Risk Heat Map */}
+        <div style={{
+          background: "#13131A", borderRadius: 12,
+          border: "1px solid #2A2A35", padding: 20, marginBottom: 24,
+        }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#E5E5E5", margin: "0 0 16px" }}>
+            依存度リスクヒートマップ ─ {sector.name}セクター
+          </h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", borderBottom: "1px solid #2A2A35", fontWeight: 500 }}>財</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", borderBottom: "1px solid #2A2A35", fontWeight: 500 }}>輸入依存度</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", borderBottom: "1px solid #2A2A35", fontWeight: 500 }}>主要供給元</th>
+                  <th style={{ textAlign: "center", padding: "8px 10px", color: "#8B8FA3", borderBottom: "1px solid #2A2A35", fontWeight: 500 }}>リスク</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", borderBottom: "1px solid #2A2A35", fontWeight: 500 }}>金額</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sector.goods.map((g, i) => {
+                  const valStage = g.stages.find(s => s.value !== "¥—");
+                  return (
+                    <tr key={i} style={{
+                      background: i % 2 === 0 ? "transparent" : "#16161D",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setActiveGood(i)}>
+                      <td style={{ padding: "10px 10px", fontWeight: 600, color: "#E5E5E5" }}>{g.name}</td>
+                      <td style={{ padding: "10px 10px", color: "#D1D5E0" }}>{g.dependency.rate}</td>
+                      <td style={{ padding: "10px 10px", color: "#D1D5E0", maxWidth: 200 }}>{g.dependency.mainSource}</td>
+                      <td style={{ padding: "10px 10px", textAlign: "center" }}>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "3px 10px",
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: riskLevelColor(g.dependency.risk),
+                          background: riskLevelBg(g.dependency.risk),
+                        }}>
+                          {g.dependency.risk}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 10px", color: sector.color, fontWeight: 600 }}>
+                        {valStage ? valStage.value : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Cross-sector Achilles' Heels */}
+        <div style={{
+          background: "#0A0A14",
+          border: "1px solid #FF475740",
+          borderRadius: 12, padding: 20, marginBottom: 24,
+        }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#FF4757", margin: "0 0 14px" }}>
+            🎯 日本のアキレス腱 ─ セクター横断リスク集中点
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+            {[
+              {
+                title: "ホルムズ海峡",
+                desc: "原油の95%、ナフサの73.6%(日本のCY2024)、LPGの大半がこの海峡を通過。閉鎖時はエネルギー＋石化の二重断絶。",
+                sectors: "エネルギー, 石化",
+                source: "METI「日本のエネルギー2024」, ICIS (2025)"
+              },
+              {
+                title: "中国の鉱物精製独占",
+                desc: "レアアース85-90%, ガリウム約98%, ゲルマニウム約86%, タングステン86%, コバルト精製73%。2024年末より輸出規制発動。",
+                sectors: "レアメタル, 半導体, 軍需",
+                source: "IEA Global Critical Minerals Outlook 2025, USGS MCS 2024"
+              },
+              {
+                title: "台湾ファウンドリ集中",
+                desc: "日本の半導体輸入の60%が台湾。先端ロジックはTSMC一社依存。台湾有事で電子産業全停止リスク。",
+                sectors: "半導体, 軍需",
+                source: "AMRO Annual Consultation Report Japan 2024 (半導体輸入額ベース); ファウンドリシェアはTrendForce"
+              },
+              {
+                title: "EUVリソグラフィ単一供給元",
+                desc: "ASML（オランダ）が100%独占。Rapidusの2nm計画もASML依存。地政学リスク（対中規制の波及）。",
+                sectors: "半導体",
+                source: "Brookings (2024)"
+              },
+              {
+                title: "スタンドオフ兵器の米国依存",
+                desc: "Tomahawk, PAC-3, SM-3/SM-6, JASSM-ER全て米国製。弾薬補給は米国の生産能力・優先度に依存。",
+                sectors: "軍需",
+                source: "防衛省FY2025予算概要; SIPRI Military Expenditure Database 2024"
+              },
+              {
+                title: "ナフサ輸送・調達→石化チェーン連鎖断絶",
+                desc: "石化用ナフサの85%が輸入依存、うち73.6%が中東(UAE30.4%/クウェート21.6%/カタール15.4%→全てホルムズ通過)。供給20%減でクラッカーが閾値崩壊(安全停止)→連産品ロック(エチレン/プロピレン/BTX同時減少)→石化チェーン全体→フォトレジスト原料途絶→世界の半導体製造に波及。",
+                sectors: "石化→半導体→全産業",
+                source: "ICIS (2025), JPCA, 財務省貿易統計"
+              },
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: "#0A0A0F",
+                border: "1px solid #FF475725",
+                borderRadius: 8, padding: "14px 16px",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#00E5CC", marginBottom: 6 }}>
+                  {item.title}
+                </div>
+                <div style={{ fontSize: 12, color: "#D1D5E0", lineHeight: 1.6, marginBottom: 8 }}>
+                  {item.desc}
+                </div>
+                <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 4 }}>
+                  関連セクター: <span style={{ color: "#8B8FA3" }}>{item.sectors}</span>
+                </div>
+                <div style={{ fontSize: 9, color: "#4A4E63", fontStyle: "italic" }}>
+                  出所: {item.source}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sources */}
+        <div style={{
+          background: "#13131A", borderRadius: 10,
+          border: "1px solid #2A2A35", padding: "16px 18px",
+        }}>
+          <h4 style={{ fontSize: 12, fontWeight: 700, color: "#8B8FA3", margin: "0 0 8px" }}>出所一覧</h4>
+          <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.8, columns: "2 300px", columnGap: 24 }}>
+            <div>• METI「Japan's Energy 2024」（エネルギー白書）</div>
+            <div>• 財務省 貿易統計 FY2024速報値</div>
+            <div>• IEA, Global Critical Minerals Outlook 2025</div>
+            <div>• USGS, Mineral Commodity Summaries 2024</div>
+            <div>• GTAIC, Japan Rare-earth Metals Market 2024</div>
+            <div>• Brookings, "The Renaissance of the Japanese Semiconductor Industry" (2024)</div>
+            <div>• U.S. Dept. of Commerce / ITA, "Japan - Semiconductors" (2024)</div>
+            <div>• AMRO Annual Consultation Report Japan 2024（半導体輸入額の台湾シェア等マクロ統計のみ。ミクロ市場シェアの出典ではない）</div>
+            <div>• SEAJ 半導体製造装置統計 (2024)</div>
+            <div>• SIPRI Military Expenditure Database 2024</div>
+            <div>• 防衛省 令和7年度(FY2025)予算の概要</div>
+            <div>• 防衛省 防衛白書2024</div>
+            <div>• SIPRI Military Expenditure Database 2024</div>
+            <div>• ICIS, Naphtha/Ethylene analytics (2025)</div>
+            <div>• C&EN, "A reckoning for Japan's petrochemical industry" (2024.1)</div>
+            <div>• JPCA（日本石油化学工業協会）各種統計</div>
+            <div>• WTO Data Blog, Critical Minerals Trade (2024)</div>
+            <div>• JRI, "Restructuring of Critical Mineral Supply" Vol.7 (2024.1)</div>
+            <div>• 各種MOFCOM/中国商務部 輸出規制公告（2024-2025）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

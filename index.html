@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="日本の戦略物資依存構造 ─ 5セクター・26財・116工程のインタラクティブデータマップ">
+<meta property="og:title" content="戦略物資の依存構造と日本の脆弱性">
+<meta property="og:description" content="5セクター・26財・116工程の輸入構造・波及額・アキレス腱をインタラクティブに探索">
+<title>戦略物資の依存構造と日本の脆弱性 ─ インタラクティブデータマップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #05050A;
+    --bg-surface: #0A0A12;
+    --bg-card: #0E0E18;
+    --bg-card-hover: #141422;
+    --border-dim: #1A1A28;
+    --border-accent: #2A2A3A;
+    --text-primary: #E8E8EE;
+    --text-secondary: #8B8FA3;
+    --text-dim: #4A4E63;
+    --teal: #00E5CC;
+    --blue: #3B82F6;
+    --magenta: #E91E90;
+    --orange: #FF7A3D;
+    --red: #FF4757;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Poppins', 'Noto Sans JP', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .hero {
+    position: relative;
+    padding: 72px 24px 48px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -300px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(ellipse, rgba(0,229,204,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-kicker {
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.1s forwards;
+  }
+  .hero h1 {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: clamp(24px, 4.2vw, 38px);
+    font-weight: 900;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--teal);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.25s forwards;
+  }
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.9;
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.4s forwards;
+  }
+  .hero-sub em {
+    font-style: normal;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    max-width: 780px;
+    margin: 40px auto 0;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.55s forwards;
+  }
+  .stat {
+    flex: 1;
+    text-align: center;
+    padding: 18px 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+  }
+  .stat:first-child { border-radius: 8px 0 0 8px; }
+  .stat:last-child  { border-radius: 0 8px 8px 0; }
+  .stat-num {
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 700;
+  }
+  .stat:nth-child(1) .stat-num { color: var(--orange); }
+  .stat:nth-child(2) .stat-num { color: var(--magenta); }
+  .stat:nth-child(3) .stat-num { color: var(--teal); }
+  .stat:nth-child(4) .stat-num { color: var(--blue); }
+  .stat:nth-child(5) .stat-num { color: var(--red); }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+  }
+  .section {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .section-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-top: 56px;
+    margin-bottom: 28px;
+  }
+  .section-title span { color: var(--teal); }
+  .maps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .map-card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    padding: 24px 22px 20px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .map-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-color);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .map-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .map-card:hover::before { opacity: 1; }
+  .map-card-number {
+    font-family: 'Poppins', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--card-color);
+    opacity: 0.2;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .map-card-title { font-size: 14px; font-weight: 700; line-height: 1.5; margin-bottom: 8px; }
+  .map-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 14px; }
+  .map-card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-family: 'Poppins', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .map-card-arrow {
+    position: absolute;
+    top: 24px; right: 22px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    color: var(--text-dim);
+    transition: all 0.25s;
+  }
+  .map-card:hover .map-card-arrow {
+    color: var(--card-color);
+    transform: translateX(3px);
+  }
+  .findings {
+    margin-top: 16px;
+    padding: 28px 26px;
+    background: var(--bg-surface);
+    border: 1px solid rgba(255,71,87,0.15);
+    border-left: 3px solid var(--red);
+    border-radius: 10px;
+    margin-bottom: 56px;
+  }
+  .findings h3 { font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 16px; }
+  .finding-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .finding-row:last-child { border-bottom: none; }
+  .finding-label { font-size: 11px; font-weight: 600; min-width: 110px; flex-shrink: 0; }
+  .c-teal { color: var(--teal); }
+  .c-orange { color: var(--orange); }
+  .c-magenta { color: var(--magenta); }
+  .c-blue { color: var(--blue); }
+  .c-red { color: var(--red); }
+  .finding-text { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+  .finding-text strong { color: var(--text-primary); font-weight: 600; }
+  .finding-text .n { font-family: 'Poppins', sans-serif; font-weight: 600; }
+  .footer {
+    border-top: 1px solid var(--border-dim);
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .footer-text {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 2.2;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .footer-brand {
+    margin-top: 24px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .maps .map-card { opacity: 0; animation: fadeUp 0.5s forwards; }
+  .maps .map-card:nth-child(1) { animation-delay: 0.65s; }
+  .maps .map-card:nth-child(2) { animation-delay: 0.73s; }
+  .maps .map-card:nth-child(3) { animation-delay: 0.81s; }
+  .maps .map-card:nth-child(4) { animation-delay: 0.89s; }
+  .maps .map-card:nth-child(5) { animation-delay: 0.97s; }
+  .maps .map-card:nth-child(6) { animation-delay: 1.05s; }
+  .findings { opacity: 0; animation: fadeUp 0.5s 1.15s forwards; }
+  @media (max-width: 600px) {
+    .hero { padding: 48px 20px 36px; }
+    .stats { flex-wrap: wrap; gap: 2px; }
+    .stat { flex: 1 1 30%; }
+    .stat:first-child { border-radius: 8px 0 0 0; }
+    .stat:nth-child(3) { border-radius: 0 8px 0 0; }
+    .stat:nth-child(4) { border-radius: 0 0 0 8px; }
+    .stat:last-child { border-radius: 0 0 8px 0; }
+    .finding-row { flex-direction: column; gap: 3px; }
+    .finding-label { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-kicker">Interactive Data Maps — March 2026</div>
+  <h1>戦略物資の依存構造と日本の脆弱性</h1>
+  <p class="hero-sub">
+    安全保障を<em>「同盟」</em>ではなく<em>「輸出入の依存構造」</em>として記述する。<br>
+    5セクター・26財・116工程の輸入構造・波及額・アキレス腱を<br>インタラクティブに探索できるデータマップ。
+  </p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">¥28兆</div><div class="stat-label">直接輸入額</div></div>
+    <div class="stat"><div class="stat-num">¥170兆+</div><div class="stat-label">下流波及額</div></div>
+    <div class="stat"><div class="stat-num">26</div><div class="stat-label">戦略物資</div></div>
+    <div class="stat"><div class="stat-num">116</div><div class="stat-label">製造工程</div></div>
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">セクター</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title"><span>01</span> — データマップ一覧</div>
+  <div class="maps">
+    <a class="map-card" href="supply_chain_dependency_analysis.html" style="--card-color: var(--teal);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">01</div>
+      <div class="map-card-title">輸出入依存構造マップ</div>
+      <div class="map-card-desc">26財の輸入依存度、供給元、リスクレベルをセクター横断で一覧。バリューチェーンの工程別に金額と依存先を表示。日本のアキレス腱6点を構造的に整理。</div>
+      <div class="map-card-tags"><span class="tag">5セクター</span><span class="tag">26財</span><span class="tag">リスクヒートマップ</span></div>
+    </a>
+    <a class="map-card" href="value_chain_ripple_impact.html" style="--card-color: var(--magenta);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">02</div>
+      <div class="map-card-title">輸入額 × 下流波及額マップ</div>
+      <div class="map-card-desc">直接輸入額と、その財が停止した場合に影響を受ける下流産業の市場規模を対比。波及倍率の非対称性（ガリウム100倍超、レアアース100倍）を可視化。</div>
+      <div class="map-card-tags"><span class="tag">波及倍率</span><span class="tag">出所付き</span><span class="tag">セクター別集計</span></div>
+    </a>
+    <a class="map-card" href="deduplicated_value_allocation.html" style="--card-color: var(--orange);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">03</div>
+      <div class="map-card-title">重複排除：下流付加価値案分</div>
+      <div class="map-card-desc">8つの最終産業の付加価値額を投入財カテゴリごとの寄与率で案分。産業連関表の構造を参考に重複排除した¥48.6兆の内訳を産業別・投入財別の両面から分解。</div>
+      <div class="map-card-tags"><span class="tag">産業連関ベース</span><span class="tag">8産業</span><span class="tag">重複排除</span></div>
+    </a>
+    <a class="map-card" href="manufacturing_processes_28goods.html" style="--card-color: var(--teal);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">04</div>
+      <div class="map-card-title">26財 × 製造工程マップ</div>
+      <div class="map-card-desc">各財の製造工程をステップバイステップで展開。工程ごとの技術的説明、主要プレイヤー、日本の立ち位置を一覧。出所を各財ごとに記載。</div>
+      <div class="map-card-tags"><span class="tag">工程詳細</span><span class="tag">プレイヤー</span><span class="tag">日本の立ち位置</span></div>
+    </a>
+    <a class="map-card" href="market_concentration_analysis.html" style="--card-color: var(--blue);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">05</div>
+      <div class="map-card-title">市場規模 × 寡占度マップ</div>
+      <div class="map-card-desc">全セクターの製造工程をHHI（ハーフィンダール指数）推計で寡占度分類。極高寡占（HHI>5000）の工程を横断的に抽出し、日本の強みと弱みを対比。</div>
+      <div class="map-card-tags"><span class="tag">HHI分類</span><span class="tag">Top3プレイヤー</span><span class="tag">横断比較</span></div>
+    </a>
+    <a class="map-card" href="full_115_process_concentration.html" style="--card-color: var(--red);">
+      <div class="map-card-arrow">›</div>
+      <div class="map-card-number">06</div>
+      <div class="map-card-title">全116工程 完全版</div>
+      <div class="map-card-desc">26財の全116工程について市場規模・トッププレイヤー・シェア・寡占度・日本の能力・出所を網羅。各行に出典を記載した最も詳細なデータセット。</div>
+      <div class="map-card-tags"><span class="tag">116工程</span><span class="tag">全行出所付き</span><span class="tag">完全版</span></div>
+    </a>
+  </div>
+
+  <div class="findings">
+    <h3>構造的発見</h3>
+    <div class="finding-row">
+      <div class="finding-label c-teal">波及倍率の非対称</div>
+      <div class="finding-text">レアメタルは直接輸入額¥4,000億に対し波及¥20兆+（<strong><span class="n">50</span>倍</strong>）。ガリウムは¥数十億→¥1兆+（<strong><span class="n">100</span>倍超</strong>）。金額の小さい財こそ安全保障上のレバレッジが最大。</div>
+    </div>
+    <div class="finding-row">
+      <div class="finding-label c-orange">ホルムズ集約</div>
+      <div class="finding-text">原油の<strong><span class="n">95%</span></strong>、石化用ナフサの<strong><span class="n">73.6%</span></strong>がホルムズ海峡を通過。封鎖時はエネルギー＋石化チェーンの二重断絶。</div>
+    </div>
+    <div class="finding-row">
+      <div class="finding-label c-magenta">中国精製独占</div>
+      <div class="finding-text">Ga <strong><span class="n">98%</span></strong>、Ge 86%、W 86%、REE精製 85-90%、Co精製 73%。2023年より段階的に輸出規制を発動中。</div>
+    </div>
+    <div class="finding-row">
+      <div class="finding-label c-blue">台湾集中</div>
+      <div class="finding-text">半導体輸入の<strong><span class="n">62%</span></strong>が台湾。先端ロジック(7nm以下)はTSMC依存ほぼ100%。台湾有事で¥40兆+の産業が同時停止。</div>
+    </div>
+    <div class="finding-row">
+      <div class="finding-label c-red">日本の戦略資産</div>
+      <div class="finding-text">シリコンウェハ<strong><span class="n">53%</span></strong>、フォトレジスト<strong><span class="n">87-90%</span></strong>、コーター/デベロッパー<strong><span class="n">88%</span></strong>。攻守の非対称を理解し活用する必要がある。</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-text">
+    出所: USGS MCS 2024/2025, IEA GCMO 2025, UN Comtrade, Brookings 2024, CSIS 2025, SIPRI 2024,
+    財務省貿易統計, 防衛省FY2025/FY2026予算概要, METI, JPCA, JAMA, JEITA, WNA, 石油連盟ほか公開データに基づく。
+    データは2026年3月時点。波及額の案分は産業連関表(総務省2020年IO表)の投入構造を参考にした著者推計。
+  </div>
+  <div class="footer-brand">ZENPORT Inc. — One Grid, Beyond Boundaries, for the Global Supply Chain.</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全セクター製造工程 寡占度マップ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const HHI_COLORS = { "極高(>5000)": "#FF4757", "高(2500-5000)": "#FF7A3D", "中(1500-2500)": "#3B82F6", "低(<1500)": "#00E5CC" };
+
+const sectors = [
+  {
+    name: "エネルギー", color: "#FF7A3D",
+    processes: [
+      { process: "原油採掘", market: "$2.1T", marketSrc: "IEA WEO 2024", top3: "Saudi Aramco(13%), Rosneft(6%), ExxonMobil(4%)", hhi: "低(<1500)", hhiLabel: "分散", concentration: "上位10社でも世界の30%程度。NOCが53%", src: "Statista 2024; OPEC Annual Report", japanPos: "INPEXが権益参加のみ" },
+      { process: "原油精製", market: "$1.8T", marketSrc: "Precedence Research 2024", top3: "Sinopec(5.9M bpd), Saudi Aramco(4.1M), ExxonMobil(4.6M)", hhi: "低(<1500)", hhiLabel: "分散", concentration: "NOCが53%シェア。上位5社で世界の約20%", src: "Mordor Intelligence 2025; Statista 2024", japanPos: "ENEOS(1.6M bpd)は世界11位級" },
+      { process: "LNG液化", market: "$120B+", marketSrc: "IGU World LNG Report 2024", top3: "QatarEnergy(22%), Shell(8%), TotalEnergies(6%)", hhi: "中(1500-2500)", hhiLabel: "やや集中", concentration: "カタール+豪+米で世界の55%。上位5社で45%", src: "IGU 2024; IEA Gas Market Report", japanPos: "千代田化工がSPB液化技術。運航は商船三井等" },
+      { process: "LNG再ガス化", market: "$40B+", marketSrc: "GIIGNL 2024", top3: "日本(37基), 韓国, 中国が主要消費", hhi: "低(<1500)", hhiLabel: "需要側分散", concentration: "国別では日本が世界最大級の受入能力", src: "GIIGNL Annual Report 2024", japanPos: "日本は世界最大のLNG受入インフラ保有" },
+      { process: "石炭採掘", market: "$900B+", marketSrc: "IEA Coal 2024", top3: "Coal India(8%), Glencore(4%), BHP(3%)", hhi: "低(<1500)", hhiLabel: "分散", concentration: "中国が世界の52%生産。輸出は豪/インドネシアが55%", src: "IEA Coal 2024; USGS", japanPos: "国内炭鉱なし。豪+インドネシアから79%輸入" },
+      { process: "ウラン濃縮", market: "$6B", marketSrc: "WNA Nuclear Fuel Report 2023", top3: "Rosatom/TVEL(46%), Urenco(29%), Orano(12%)", hhi: "極高(>5000)", hhiLabel: "寡占", concentration: "世界SWU市場でロシア46%を支配。ただし日本はOrano(仏)40-50%+Urenco(欧)30-40%+JNFL2-5%で調達し、Rosatomへの依存は0〜微量(SPF/IINA)", src: "WNA 2023; UxC; SPF/IINA", japanPos: "JNFL六ケ所2-5%。Orano(JNFL/MHI出資)+Urencoが主力。Rosatom非依存" },
+    ]
+  },
+  {
+    name: "石化", color: "#E91E90",
+    processes: [
+      { process: "ナフサ輸送・調達", market: "アジア8,660万t(2025)", marketSrc: "JPCA; 財務省貿易統計CY2024", top3: "UAE30.4%/クウェート21.6%/カタール15.4%/韓国12.2%(中東計73.6%→全てホルムズ通過)", hhi: "極高(>5000)", hhiLabel: "チョークポイント集中", concentration: "石化用ナフサの85%が輸入依存。うち73.6%が中東（全てホルムズ海峡通過。UAE30.4%/クウェート21.6%/カタール15.4%）。国別HHIは分散するが地理的チョークポイントに集中しておりEH相当", src: "JPCA; 財務省貿易統計CY2024", japanPos: "85%輸入依存。ホルムズ封鎖で石化チェーン全体に波及（工程増幅）" },
+      { process: "ナフサクラッキング", market: "$350B+(エチレン市場)", marketSrc: "IHS Markit; MRFR 2024", top3: "Sinopec, SABIC, Dow", hhi: "低(<1500)", hhiLabel: "分散", concentration: "中国が世界のエチレン能力の35%。日本は640万t/年(4%)", src: "SunSirs 2025; JPCA", japanPos: "国内12基。稼働率70%以下。中国との競争で劣位" },
+      { process: "ポリエチレン製造", market: "$130B", marketSrc: "Grand View Research 2024", top3: "Dow(14%), ExxonMobil(10%), SABIC(8%)", hhi: "低(<1500)", hhiLabel: "分散", concentration: "上位5社で35%。新興国の増産で競争激化", src: "Grand View Research 2024", japanPos: "三井化学、住友化学が国内供給" },
+      { process: "ポリプロピレン製造", market: "$120B", marketSrc: "Fortune Business Insights 2024", top3: "LyondellBasell(12%), Sinopec(10%), Braskem(5%)", hhi: "低(<1500)", hhiLabel: "分散", concentration: "分散的だが中国の増産圧力が大", src: "Fortune Business Insights 2024", japanPos: "三井化学、日本ポリプロ" },
+    ]
+  },
+  {
+    name: "レアメタル", color: "#00E5CC",
+    processes: [
+      { process: "レアアース採掘", market: "$5B(鉱石)", marketSrc: "USGS MCS 2024", top3: "中国(60%), ミャンマー(12%), 豪(6%)", hhi: "極高(>5000)", hhiLabel: "中国独占的", concentration: "中国が採掘60%+精製85-90%。重希土類は中国100%", src: "IEA GCMO 2025; USGS MCS 2024", japanPos: "国内鉱山なし。中国65%依存(2025年時点)" },
+      { process: "レアアース分離精製", market: "$8B(酸化物)", marketSrc: "IEA GCMO 2025推計", top3: "中国(85-90%), Lynas/マレーシア(5%), エストニア(2%)", hhi: "極高(>5000)", hhiLabel: "中国独占", concentration: "中国が85-90%を独占。Lynas(豪/マレーシア)が唯一の大規模代替", src: "IEA GCMO 2025; CSIS 2025", japanPos: "昭和電工等に微量能力。技術はあるが規模不足" },
+      { process: "NdFeB永久磁石製造", market: "$25B", marketSrc: "矢野経済研究所 2024推計", top3: "中国(94%生産), 信越化学, TDK", hhi: "極高(>5000)", hhiLabel: "中国独占的", concentration: "中国が生産の94%。日本は技術的に先行するが原料依存", src: "IEA GCMO 2025; Adamas Intelligence", japanPos: "信越化学/TDKが高性能品で技術優位" },
+      { process: "リチウム採掘", market: "$22B", marketSrc: "S&P Global 2024", top3: "Albemarle(豪/チリ15%), SQM(チリ12%), Tianqi(中/豪10%)", hhi: "中(1500-2500)", hhiLabel: "やや集中", concentration: "豪+チリ+中国で生産の88%", src: "IEA GCMO 2025; USGS MCS 2024", japanPos: "国内資源なし" },
+      { process: "リチウム精製(Li₂CO₃/LiOH)", market: "$15B", marketSrc: "IEA推計", top3: "中国(56%精製), チリ(25%), 豪(新規)", hhi: "高(2500-5000)", hhiLabel: "中国集中", concentration: "中国が精製の56%。豪鉱石も中国に輸出→精製→再輸出の構造", src: "IEA GCMO 2025", japanPos: "—" },
+      { process: "コバルト精製", market: "$8B", marketSrc: "Cobalt Institute 2024", top3: "中国(73%精製), フィンランド(5%), 日本(4%)", hhi: "極高(>5000)", hhiLabel: "中国独占的", concentration: "DRC採掘63%→中国精製73%の二重集中", src: "IEA GCMO 2025; Cobalt Institute", japanPos: "住友金属鉱山が一部精錬能力" },
+      { process: "ニッケル精錬", market: "$40B", marketSrc: "USGS推計", top3: "インドネシア(71%精製Ni), 中国(15%), 日本(4%)", hhi: "極高(>5000)", hhiLabel: "インドネシア集中", concentration: "インドネシアが精製の71%。中国資本が多い", src: "IEA GCMO 2025", japanPos: "住友金属鉱山(ポマラHPAL等)" },
+      { process: "ガリウム精製", market: "$300M", marketSrc: "USGS MCS 2024", top3: "中国(約98%: 610t中600t), 日本(<1%), ロシア(<1%)", hhi: "極高(>5000)", hhiLabel: "中国完全独占", concentration: "中国が精製の約98%を独占(USGS: 全世界610t中600t)。事実上の一国モノポリー", src: "USGS MCS 2024 (生産量610t中国600t); IEA GCMO 2025", japanPos: "DOWAに微量能力。実質依存" },
+      { process: "ゲルマニウム精製", market: "$200M", marketSrc: "USGS MCS 2024", top3: "中国(約86%: 210t中180t), ベルギー/Umicore(~10%), カナダ(~5%)", hhi: "極高(>5000)", hhiLabel: "中国独占的", concentration: "中国約86%(USGS: 210t中180t)。2024年12月対米輸出規制発動", src: "USGS MCS 2024 (生産量210t中国180t); MOFCOM No.46", japanPos: "微量回収能力のみ" },
+      { process: "タングステン採掘/精製", market: "$5B", marketSrc: "USGS MCS 2024", top3: "中国(81.5%採掘/86%精製), ロシア, ベトナム", hhi: "極高(>5000)", hhiLabel: "中国独占的", concentration: "中国が採掘81.5%、精製86%。2025年輸出規制対象", src: "USGS MCS 2024", japanPos: "三菱マテリアル/住友電工が超硬工具(下流)" },
+    ]
+  },
+  {
+    name: "半導体", color: "#3B82F6",
+    processes: [
+      { process: "EDA(設計ソフト)", market: "$16B", marketSrc: "ESD Alliance 2024", top3: "Synopsys(32%), Cadence(28%), Siemens EDA(12%)", hhi: "高(2500-5000)", hhiLabel: "米国2社寡占", concentration: "Synopsys+Cadenceで60%。実質的に米国2社がゲートキーパー", src: "ESD Alliance; S&P Global 2024", japanPos: "完全依存。国産EDAなし" },
+      { process: "シリコンウェハ", market: "$14B", marketSrc: "SEMI SMG 2024", top3: "信越化学(30%), SUMCO(23%), Siltronic(13%)", hhi: "高(2500-5000)", hhiLabel: "日本寡占", concentration: "★信越+SUMCO=53%。日独4社で87%", src: "Brookings 2024; SEMI", japanPos: "★日本が世界の53%を供給。戦略的武器" },
+      { process: "フォトレジスト", market: "$5B", marketSrc: "Yole 2024推計", top3: "JSR(28%), 東京応化(22%), 信越化学(15%)", hhi: "高(2500-5000)", hhiLabel: "日本寡占", concentration: "★日本4社で87-90%。特にEUV用は更に集中", src: "Brookings 2024; Yole Développement推計", japanPos: "★日本が87-90%を独占供給" },
+      { process: "コーター/デベロッパー", market: "$3B(装置)", marketSrc: "SEAJ推計", top3: "TEL(70%), SCREEN(18%)", hhi: "極高(>5000)", hhiLabel: "日本独占", concentration: "★TEL+SCREENで88%。日本が完全に支配", src: "Brookings 2024; ITA 2024", japanPos: "★日本が88%独占。最大の戦略資産の一つ" },
+      { process: "エッチング装置", market: "$18B", marketSrc: "SEMI 2024推計", top3: "Lam Research(45%), TEL(25%), AMAT(20%)", hhi: "高(2500-5000)", hhiLabel: "3社寡占", concentration: "上位3社で90%。日米で独占", src: "TechInsights 2024", japanPos: "TELがエッチングで25%シェア" },
+      { process: "成膜装置(CVD/PVD)", market: "$20B", marketSrc: "SEMI 2024推計", top3: "AMAT(40%), TEL(20%), Lam(15%)", hhi: "高(2500-5000)", hhiLabel: "3社寡占", concentration: "AMAT+TEL+Lamで75%", src: "TechInsights 2024", japanPos: "TELが20%シェア" },
+      { process: "EUVリソグラフィ装置", market: "$10B+(ASML EUV売上)", marketSrc: "ASML IR 2024", top3: "ASML(100%)", hhi: "極高(>5000)", hhiLabel: "完全独占", concentration: "★ASML 1社が100%独占。1台$150-350M", src: "ASML IR 2024; Brookings 2024", japanPos: "部品供給(浜松ホトニクス等)のみ。ASML完全依存" },
+      { process: "検査/計測装置", market: "$10B", marketSrc: "SEMI 2024推計", top3: "KLA(55%), AMAT(15%), Hitachi High-Tech(10%)", hhi: "高(2500-5000)", hhiLabel: "KLA寡占", concentration: "KLAが過半。日立ハイテクが3位", src: "TechInsights 2024", japanPos: "日立ハイテク、Lasertecが存在感" },
+      { process: "テスター(後工程)", market: "$6B", marketSrc: "SEMI 2024推計", top3: "Advantest(52%), Teradyne(38%)", hhi: "極高(>5000)", hhiLabel: "日米2社独占", concentration: "★Advantest+Teradyneで90%。Advantestが首位", src: "Advantest IR; TechInsights", japanPos: "★Advantestが世界首位(52%)" },
+      { process: "ファウンドリ(前工程)", market: "$148B", marketSrc: "Precedence Research 2024", top3: "TSMC(67.6%), Samsung(7.7%), SMIC(6%)", hhi: "極高(>5000)", hhiLabel: "TSMC独占的", concentration: "★TSMC 1社で67.6%。上位3社で81%", src: "TrendForce Q1 2025", japanPos: "Rapidus(2nm挑戦中)。JASM(TSMC熊本)" },
+      { process: "OSAT(後工程実装)", market: "$45B", marketSrc: "Yole 2024", top3: "ASE(27%), Amkor(15%), JCET(10%)", hhi: "中(1500-2500)", hhiLabel: "台湾集中", concentration: "台湾+中国で55%。日本は脆弱", src: "TrendForce 2024; Yole 2024", japanPos: "国内OSAT脆弱(Brookings指摘)" },
+      { process: "先端パッケージング(CoWoS等)", market: "$8B(急成長)", marketSrc: "Yole 2024推計", top3: "TSMC(60%+), Samsung(15%), Intel(10%)", hhi: "極高(>5000)", hhiLabel: "TSMC独占的", concentration: "TSMC CoWoSがAI向け需要を独占", src: "TSMC IR; Yole 2024", japanPos: "★ABF(味の素)が世界必須材料" },
+    ]
+  },
+  {
+    name: "軍需", color: "#FF4757",
+    processes: [
+      { process: "戦闘機(第5世代)", market: "~$12B/年(年間調達)", marketSrc: "GAO F-35 Report 2024 (ライフサイクル総費用は$1.7T+)", top3: "Lockheed Martin(F-35: 独占), Boeing(非5世代)", hhi: "極高(>5000)", hhiLabel: "LM独占", concentration: "第5世代ステルス戦闘機はF-35(LM)が西側唯一の量産機", src: "GAO 2024; SIPRI", japanPos: "FACO(組立)のみ。設計/主要部品は米国" },
+      { process: "戦闘機エンジン", market: "$25B", marketSrc: "Forecast International 2024", top3: "Pratt & Whitney(F135独占), GE Aerospace, Rolls-Royce", hhi: "極高(>5000)", hhiLabel: "3社寡占", concentration: "F-35用F135はP&W独占。GCAPエンジンはRR/IHI共同", src: "P&W; IHI IR", japanPos: "IHIがF135部品ライセンス生産+GCAP共同開発" },
+      { process: "弾道ミサイル迎撃体", market: "$8B", marketSrc: "MDA Budget FY2024", top3: "RTX/Raytheon(PAC-3/SM-3/SM-6), LM(THAAD), Boeing(GMD)", hhi: "極高(>5000)", hhiLabel: "RTX独占的", concentration: "海上BMDはRTX独占(SM-3系列)。地上はLM(THAAD)も", src: "MDA; CSIS Missile Threat 2023", japanPos: "SM-3 IIA共同開発(MHI:モーター/ノーズコーン)" },
+      { process: "巡航ミサイル", market: "$6B", marketSrc: "Jane's推計", top3: "RTX(Tomahawk), LM(JASSM), Kongsberg(JSM/NSM)", hhi: "極高(>5000)", hhiLabel: "米国寡占", concentration: "長射程巡航ミサイルは米国2社+ノルウェー1社", src: "Jane's; DSCA", japanPos: "Tomahawk/JASSM-ERはFMS購入。12式改で国産化目指す" },
+      { process: "イージス戦闘システム", market: "$5B+", marketSrc: "LM IR推計", top3: "Lockheed Martin(100%)", hhi: "極高(>5000)", hhiLabel: "LM完全独占", concentration: "世界唯一のイージスシステム供給元", src: "LM公式; Wikipedia Aegis", japanPos: "購入のみ。ソフトウェアはブラックボックス" },
+      { process: "軍用UAV(MALE/HALE)", market: "$15B", marketSrc: "Teal Group 2024", top3: "General Atomics(MQ-9: 40%), Baykar(TB2/Akinci: 20%), IAI(15%)", hhi: "高(2500-5000)", hhiLabel: "米国+トルコ+イスラエル", concentration: "GA/Baykar/IAIの3社が主要供給元", src: "Teal Group; SIPRI Arms Transfers", japanPos: "国産開発遅延。当面は輸入" },
+      { process: "Mk 41 VLS(垂直発射装置)", market: "$2B+", marketSrc: "BAE Systems推計", top3: "BAE Systems/LM(100%)", hhi: "極高(>5000)", hhiLabel: "完全独占", concentration: "西側標準VLS。代替なし", src: "BAE Systems; Jane's", japanPos: "購入のみ" },
+    ]
+  },
+];
+
+const hhiColor = (label) => {
+  if (label.includes("極高")) return "#FF4757";
+  if (label.includes("高")) return "#FF7A3D";
+  if (label.includes("中")) return "#3B82F6";
+  return "#00E5CC";
+};
+
+function App() {
+  const [activeSector, setActiveSector] = useState("半導体");
+  const [sortBy, setSortBy] = useState("hhi"); // hhi or market
+
+  const sec = sectors.find(s => s.name === activeSector);
+  const sorted = [...sec.processes].sort((a, b) => {
+    if (sortBy === "hhi") {
+      const order = { "極高(>5000)": 0, "高(2500-5000)": 1, "中(1500-2500)": 2, "低(<1500)": 3 };
+      return (order[a.hhi] ?? 4) - (order[b.hhi] ?? 4);
+    }
+    return 0;
+  });
+
+  // Count extreme concentration
+  const extremeCount = sec.processes.filter(p => p.hhi === "極高(>5000)").length;
+  const totalCount = sec.processes.length;
+
+  return (
+    <div style={{ fontFamily: "'Poppins', 'Noto Sans JP', sans-serif", background: "#07070C", color: "#E5E5E5", minHeight: "100vh", padding: "20px 12px" }}>
+      
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 4px" }}>全セクター製造工程 市場規模 × プレイヤー × 寡占度マップ</h1>
+        <p style={{ fontSize: 10, color: "#6B7280", margin: "0 0 14px" }}>
+          HHI(ハーフィンダール指数)推計に基づく寡占度分類。出所はすべて各行に記載。
+        </p>
+
+        <div style={{ display: "flex", gap: 5, marginBottom: 14, flexWrap: "wrap" }}>
+          {sectors.map(s => (
+            <button key={s.name} onClick={() => setActiveSector(s.name)} style={{
+              padding: "6px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer",
+              border: activeSector === s.name ? `2px solid ${s.color}` : "1px solid #2A2A35",
+              background: activeSector === s.name ? `${s.color}18` : "#111118",
+              color: activeSector === s.name ? s.color : "#8B8B9A",
+              fontWeight: activeSector === s.name ? 700 : 400,
+            }}>{s.name}（{s.processes.length}工程）</button>
+          ))}
+        </div>
+
+        {/* Summary */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 120px", background: "#FF475712", border: "1px solid #FF475730", borderRadius: 6, padding: "6px 10px" }}>
+            <div style={{ fontSize: 9, color: "#8B8FA3" }}>極高寡占(HHI&gt;5000)</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#FF4757" }}>{extremeCount}/{totalCount}</div>
+          </div>
+          <div style={{ flex: "1 1 120px", background: "#FF7A3D12", border: "1px solid #FF7A3D30", borderRadius: 6, padding: "6px 10px" }}>
+            <div style={{ fontSize: 9, color: "#8B8FA3" }}>高寡占(2500-5000)</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#FF7A3D" }}>{sec.processes.filter(p => p.hhi === "高(2500-5000)").length}/{totalCount}</div>
+          </div>
+          <div style={{ flex: "1 1 120px", background: "#00E5CC12", border: "1px solid #00E5CC30", borderRadius: 6, padding: "6px 10px" }}>
+            <div style={{ fontSize: 9, color: "#8B8FA3" }}>分散(HHI&lt;1500)</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#00E5CC" }}>{sec.processes.filter(p => p.hhi === "低(<1500)").length}/{totalCount}</div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div style={{ overflowX: "auto" }}>
+          {sorted.map((p, i) => (
+            <div key={i} style={{
+              marginBottom: 6, background: "#0E0E16",
+              border: `1px solid ${hhiColor(p.hhi)}20`, borderRadius: 6,
+              padding: "10px 12px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, flexWrap: "wrap", gap: 6 }}>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#E5E5E5" }}>{p.process}</span>
+                  <span style={{
+                    marginLeft: 8, fontSize: 9, padding: "2px 6px", borderRadius: 3,
+                    background: `${hhiColor(p.hhi)}18`, color: hhiColor(p.hhi), fontWeight: 700,
+                  }}>HHI {p.hhiLabel}</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: sec.color }}>{p.market}</div>
+              </div>
+              <div style={{ fontSize: 10, color: "#D1D5E0", marginBottom: 4 }}>
+                <span style={{ color: "#8B8FA3" }}>Top3: </span>{p.top3}
+              </div>
+              <div style={{ fontSize: 10, color: "#B0B0C0", marginBottom: 4 }}>{p.concentration}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
+                <div style={{ fontSize: 9, color: p.japanPos.includes("★") ? "#00E5CC" : "#6B7280" }}>
+                  日本: {p.japanPos}
+                </div>
+                <div style={{ fontSize: 8, color: "#4A4E63", fontStyle: "italic" }}>
+                  出所: {p.src} / 市場規模: {p.marketSrc}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cross-sector insight */}
+        <div style={{ marginTop: 16, padding: 14, borderRadius: 8, background: "#111118", border: "1px solid #FF475730" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#FF4757", marginBottom: 8 }}>全セクター横断: 極高寡占(HHI&gt;5000)工程一覧</div>
+          <div style={{ fontSize: 10, color: "#D1D5E0", lineHeight: 1.6 }}>
+            {sectors.flatMap(s => s.processes.filter(p => p.hhi === "極高(>5000)").map(p => ({ ...p, sector: s.name, sColor: s.color }))).map((p, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                <span style={{ fontSize: 8, color: p.sColor, fontWeight: 700, minWidth: 50 }}>{p.sector}</span>
+                <span style={{ color: "#FF4757", fontSize: 10 }}>●</span>
+                <span style={{ fontWeight: 600 }}>{p.process}</span>
+                <span style={{ color: "#6B7280", fontSize: 9 }}>— {p.top3.split(",")[0]}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 8, color: "#4A4E63", marginTop: 8, fontStyle: "italic", lineHeight: 1.6 }}>
+            出所: IEA GCMO 2025, USGS MCS 2024, SEMI 2024, TrendForce 2025, Brookings 2024, ASML IR, SIPRI,
+            GAO F-35 Report, MDA, Jane's, CSIS Missile Threat 2023, WNA 2023, Precedence Research 2024,
+            SEAJ 2024, TechInsights 2024, Fortune Business Insights 2024, Yole 2024, ESD Alliance 2024
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
