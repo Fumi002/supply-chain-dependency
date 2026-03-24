@@ -236,6 +236,53 @@
   .finding-text { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
   .finding-text strong { color: var(--text-primary); font-weight: 600; }
   .finding-text .n { font-family: 'Poppins', sans-serif; font-weight: 600; }
+  .downloads {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 56px;
+  }
+  .dl-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    padding: 18px 22px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dl-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+  .dl-icon {
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    text-align: center;
+    min-width: 56px;
+  }
+  .dl-card:nth-child(1) .dl-icon { background: rgba(255,71,87,0.12); color: var(--red); }
+  .dl-card:nth-child(2) .dl-icon { background: rgba(0,229,204,0.10); color: var(--teal); }
+  .dl-card:nth-child(3) .dl-icon { background: rgba(0,229,204,0.10); color: var(--teal); }
+  .dl-body { flex: 1; min-width: 0; }
+  .dl-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .dl-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
+  .dl-meta {
+    font-family: 'Poppins', sans-serif;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
   .footer {
     border-top: 1px solid var(--border-dim);
     padding: 40px 24px;
@@ -268,6 +315,10 @@
   .maps .map-card:nth-child(5) { animation-delay: 0.97s; }
   .maps .map-card:nth-child(6) { animation-delay: 1.05s; }
   .findings { opacity: 0; animation: fadeUp 0.5s 1.15s forwards; }
+  .downloads .dl-card { opacity: 0; animation: fadeUp 0.5s forwards; }
+  .downloads .dl-card:nth-child(1) { animation-delay: 1.3s; }
+  .downloads .dl-card:nth-child(2) { animation-delay: 1.38s; }
+  .downloads .dl-card:nth-child(3) { animation-delay: 1.46s; }
   @media (max-width: 600px) {
     .hero { padding: 48px 20px 36px; }
     .stats { flex-wrap: wrap; gap: 2px; }
@@ -278,13 +329,14 @@
     .stat:last-child { border-radius: 0 0 8px 0; }
     .finding-row { flex-direction: column; gap: 3px; }
     .finding-label { min-width: auto; }
+    .dl-card { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
 </style>
 </head>
 <body>
 
 <div class="hero">
-  <div class="hero-kicker">Interactive Data Maps — March 2026</div>
+  <div class="hero-kicker">Interactive Data Maps — Version 1.1 — March 24, 2026</div>
   <h1>戦略物資の依存構造と日本の脆弱性</h1>
   <p class="hero-sub">
     安全保障を<em>「同盟」</em>ではなく<em>「輸出入の依存構造」</em>として記述する。<br>
@@ -368,6 +420,35 @@
       <div class="finding-label c-red">日本の戦略資産</div>
       <div class="finding-text">シリコンウェハ<strong><span class="n">53%</span></strong>、フォトレジスト<strong><span class="n">87-90%</span></strong>、コーター/デベロッパー<strong><span class="n">88%</span></strong>。攻守の非対称を理解し活用する必要がある。</div>
     </div>
+  </div>
+
+  <!-- Downloads -->
+  <div class="section-title"><span>02</span> — レポート・データシート</div>
+  <div class="downloads">
+    <a class="dl-card" href="report.pdf" target="_blank">
+      <div class="dl-icon">PDF</div>
+      <div class="dl-body">
+        <div class="dl-title">レポート全文</div>
+        <div class="dl-desc">戦略物資の依存構造と日本の脆弱性 ─ 5領域・26財・116工程の輸入構造・アキレス腱・波及額・シナリオ分析（31ページ）</div>
+        <div class="dl-meta">Version 1.1 — March 24, 2026</div>
+      </div>
+    </a>
+    <a class="dl-card" href="appendix_c1_import_summary.xlsx">
+      <div class="dl-icon">XLSX</div>
+      <div class="dl-body">
+        <div class="dl-title">5領域26財 輸入サマリー</div>
+        <div class="dl-desc">国別内訳・シェア・信頼度・出所を一覧したデータシート</div>
+        <div class="dl-meta">Appendix C-1</div>
+      </div>
+    </a>
+    <a class="dl-card" href="appendix_c2_hhi_116processes.xlsx">
+      <div class="dl-icon">XLSX</div>
+      <div class="dl-body">
+        <div class="dl-title">全116工程 HHI一覧</div>
+        <div class="dl-desc">寡占度・トッププレイヤー・市場規模・アキレス腱分類を網羅した完全データセット</div>
+        <div class="dl-meta">Appendix C-2</div>
+      </div>
+    </a>
   </div>
 </div>
 
